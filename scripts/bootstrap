@@ -22,20 +22,6 @@ ln -sf "$HOME/.venv/" .venv  # symlink for IDEs
 # shellcheck source=/dev/null
 . "$HOME/.venv/bin/activate"
 
-if [ -f "$HOME/.bashrc" ]; then
-  if ! grep -q "source $HOME/.venv/bin/activate" "$HOME/.bashrc" 2>/dev/null; then
-    echo "==> Updating Bash configuration to source Python virtual environment..."
-    echo "source $HOME/.venv/bin/activate" >> "$HOME/.bashrc"
-  fi
-fi
-
-if [ -f "$HOME/.zshrc" ]; then
-  if ! grep -q "source $HOME/.venv/bin/activate" "$HOME/.zshrc" 2>/dev/null; then
-    echo "==> Updating Zsh configuration to source Python virtual environment..."
-    echo "source $HOME/.venv/bin/activate" >> "$HOME/.zshrc"
-  fi
-fi
-
 echo "==> Installing dependencies..."
 uv pip install --requirement requirements.test.txt
 
@@ -56,11 +42,6 @@ curl -fsSL "${HA_CORE_BASE_URL}/homeassistant/package_constraints.txt" -o /tmp/h
 curl -fsSL "${HA_CORE_BASE_URL}/requirements.txt" -o /tmp/requirements.txt  # required by requirements_all.txt
 curl -fsSL "${HA_CORE_BASE_URL}/requirements_all.txt" -o /tmp/requirements_all.txt
 uv pip install --requirement "/tmp/requirements_all.txt"
-
-echo "==> Installing Home Assistant test dependencies..."
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_test_pre_commit.txt" -o /tmp/requirements_test_pre_commit.txt  # required by requirements_test.txt
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_test.txt" -o /tmp/requirements_test.txt
-uv pip install --requirement "/tmp/requirements_test.txt"
 
 rm -rf /tmp/requirements*.txt /tmp/homeassistant/
 
