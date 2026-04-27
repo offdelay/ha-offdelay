@@ -11,7 +11,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfTemperature
 
-from .const import CONF_CLIMATES, DATA_CLIMATE_MAX_NEG_DELTA, DATA_CLIMATE_MAX_POS_DELTA
+from .const import CONF_CLIMATES, DATA_CLIMATE_DELTA_TO_TARGET
 from .entity import OffdelayEntity
 
 if TYPE_CHECKING:
@@ -49,18 +49,11 @@ ENTITY_DESCRIPTIONS = (
 
 CLIMATE_ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
-        key=DATA_CLIMATE_MAX_POS_DELTA,
-        translation_key="climate_max_pos_delta",
+        key=DATA_CLIMATE_DELTA_TO_TARGET,
+        translation_key="climate_delta_to_target",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        icon="mdi:arrow-up-bold",
-    ),
-    SensorEntityDescription(
-        key=DATA_CLIMATE_MAX_NEG_DELTA,
-        translation_key="climate_max_neg_delta",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        icon="mdi:arrow-down-bold",
+        icon="mdi:thermometer-lines",
     ),
 )
 

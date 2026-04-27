@@ -9,8 +9,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.offdelay.const import (
-    DATA_CLIMATE_MAX_NEG_DELTA,
-    DATA_CLIMATE_MAX_POS_DELTA,
+    DATA_CLIMATE_DELTA_TO_TARGET,
     DATA_CLIMATE_MODE,
     DOMAIN,
 )
@@ -108,62 +107,67 @@ async def test_config_flow_day_night_hour_conflict(hass: HomeAssistant):
 
 async def test_climate_delta_calculation(hass: HomeAssistant):
     """Test delta calculation with mock climate entities."""
-    # Set up climate entities with known temps
-    hass.states.async_set(
-        "climate.living_room",
-        "heat",
-        {
-            "current_temperature": 22.0,
-            "temperature": 20.0,
-        },
-    )
-    hass.states.async_set(
-        "climate.bedroom",
-        "heat",
-        {
-            "current_temperature": 18.0,
-            "temperature": 21.0,
-        },
-    )
+    # Pin to day window so weather mode is used (mode="none" → delta selected as OFF)
+    mock_day = datetime(2026, 4, 24, 12, 0, 0, tzinfo=dt_util.UTC)
+    with patch("homeassistant.util.dt.now", return_value=mock_day):
+        # Set up climate entities with known temps
+        hass.states.async_set(
+            "climate.living_room",
+            "heat",
+            {
+                "current_temperature": 22.0,
+                "temperature": 20.0,
+            },
+        )
+        hass.states.async_set(
+            "climate.bedroom",
+            "heat",
+            {
+                "current_temperature": 18.0,
+                "temperature": 21.0,
+            },
+        )
 
-    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_CLIMATE)
-    entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+        entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_CLIMATE)
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
 
-    coordinator = entry.runtime_data.coordinator
-    await coordinator.async_refresh()
-    await hass.async_block_till_done()
+        coordinator = entry.runtime_data.coordinator
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
 
-    # climate_max_pos_delta should be 2.0 (22-20)
-    # climate_max_neg_delta should be -3.0 (18-21)
-    assert coordinator.data[DATA_CLIMATE_MAX_POS_DELTA] == pytest.approx(2.0)
-    assert coordinator.data[DATA_CLIMATE_MAX_NEG_DELTA] == pytest.approx(-3.0)
+        # Mode is "none" (weather: 20 is between winter_max=15 and summer_min=20)
+        # Delta selection falls through to OFF mode: largest abs = 3.0 (bedroom)
+        assert coordinator.data[DATA_CLIMATE_DELTA_TO_TARGET] == pytest.approx(3.0)
 
 
 async def test_climate_delta_missing_entity(hass: HomeAssistant):
     """Test delta when a climate entity is unavailable."""
-    # Only set up one of the two configured entities
-    hass.states.async_set(
-        "climate.living_room",
-        "heat",
-        {
-            "current_temperature": 22.0,
-            "temperature": 20.0,
-        },
-    )
+    mock_day = datetime(2026, 4, 24, 12, 0, 0, tzinfo=dt_util.UTC)
+    with patch("homeassistant.util.dt.now", return_value=mock_day):
+        # Only set up one of the two configured entities
+        hass.states.async_set(
+            "climate.living_room",
+            "heat",
+            {
+                "current_temperature": 22.0,
+                "temperature": 20.0,
+            },
+        )
 
-    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_CLIMATE)
-    entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+        entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_CLIMATE)
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
 
-    coordinator = entry.runtime_data.coordinator
-    await coordinator.async_refresh()
-    await hass.async_block_till_done()
+        coordinator = entry.runtime_data.coordinator
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
 
-    assert coordinator.data[DATA_CLIMATE_MAX_POS_DELTA] == pytest.approx(2.0)
-    assert coordinator.data[DATA_CLIMATE_MAX_NEG_DELTA] == pytest.approx(2.0)
+        # Only living_room has data: delta = 20 - 22 = -2.0
+        # Mode is "none" → falls through to OFF → single delta = -2.0
+        assert coordinator.data[DATA_CLIMATE_DELTA_TO_TARGET] == pytest.approx(-2.0)
 
 
 # C. Coordinator Climate Mode Tests — Time Window Logic
@@ -252,7 +256,7 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "winter"
 
-    # Now at night (20:00), all climate entities are warm → switch to summer
+    # Now at night (20:00), all climate entities are warm → winter transitions to off
     # tolerance is 0.5 in MOCK_CONFIG_WITH_CLIMATE
     hass.states.async_set(
         "climate.living_room",
@@ -269,7 +273,7 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
     with patch("homeassistant.util.dt.now", return_value=mock_night):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
-        assert coordinator.data[DATA_CLIMATE_MODE] == "summer"
+        assert coordinator.data[DATA_CLIMATE_MODE] == "off"
 
 
 async def test_weather_mode_all_day_no_climates(hass: HomeAssistant):
@@ -448,7 +452,7 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
         assert coordinator.data[DATA_CLIMATE_MODE] == "winter"
 
     # At exactly 17:00 (night_start), climate logic should run, NOT weather
-    # Set climate entities warm → should switch from winter to summer
+    # Set climate entities warm → should switch from winter to off
     hass.states.async_set(
         "climate.living_room",
         "heat",
@@ -464,8 +468,8 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
     with patch("homeassistant.util.dt.now", return_value=mock_5pm):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
-        # Climate logic runs at 17:00 (not weather), so mode switches
-        assert coordinator.data[DATA_CLIMATE_MODE] == "summer"
+        # Climate logic runs at 17:00 (not weather), winter → off
+        assert coordinator.data[DATA_CLIMATE_MODE] == "off"
 
 
 # D. Binary Sensor State Tests
