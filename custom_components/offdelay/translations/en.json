@@ -7,6 +7,7 @@
                     "winter_max_temp": "Winter Mode Max Outside Temperature",
                     "summer_min_temp": "Summer Mode Min Outside Temperature",
                     "climates": "Climate Entities",
+                    "climates_boost": "Boost Heatpump Climates",
                     "occupancy_sensors": "Occupancy Sensors",
                     "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
                     "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
@@ -21,6 +22,7 @@
                     "winter_max_temp": "Winter Mode Max Outside Temperature",
                     "summer_min_temp": "Summer Mode Min Outside Temperature",
                     "climates": "Climate Entities",
+                    "climates_boost": "Boost Heatpump Climates",
                     "occupancy_sensors": "Occupancy Sensors",
                     "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
                     "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
@@ -32,7 +34,7 @@
         },
         "error": {
             "winter_summer_temp_conflict": "Winter max temperature must be lower than summer min temperature.",
-            "winter_summer_temp_too_close": "The difference between winter and summer temperatures must be greater than 0.1\u00b0C.",
+            "winter_summer_temp_too_close": "The difference between winter and summer temperatures must be greater than 0.1°C.",
             "day_night_hour_conflict": "Day start hour must be less than night start hour."
         },
         "abort": {
@@ -60,3 +62,4 @@
         }
     }
 }
+``

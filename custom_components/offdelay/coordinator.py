@@ -37,6 +37,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.config_entry = config_entry
 
         self.data: dict[str, Any] = {}
+        self.boost_state: dict[str, bool] = {}  # climate entity_id -> boost active
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch all coordinator data."""
@@ -51,6 +52,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         climate_mode = self._update_climate_mode(data)
         data.update(climate_deltas)
         data.update(climate_mode)
+        data["boost_state"] = self.boost_state.copy()
 
         return data
 
@@ -186,6 +188,11 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Night window with climates: check indoor temps for mode switching
         return self._climate_mode_logic(climates, current_mode)
+
+    def set_boost_active(self, climate_entity_id: str, active: bool) -> None:  # noqa: FBT001
+        """Set boost state for a climate entity."""
+        self.boost_state[climate_entity_id] = active
+        self.async_set_updated_data(self.data)
 
     async def _update_weather_data(self) -> dict[str, Any]:
         """Get weather forecast data and compute values.
