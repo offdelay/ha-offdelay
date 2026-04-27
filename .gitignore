@@ -17,9 +17,8 @@ dist/
 # -----------------------------
 # Home Assistant configuration
 # -----------------------------
-# Ignore all config except configuration.yaml
+# Ignore all config
 config/*
-!config/configuration.yaml
 
 # Home Assistant database and logs
 *.db
