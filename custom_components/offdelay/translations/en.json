@@ -8,6 +8,9 @@
                     "summer_min_temp": "Summer Mode Min Outside Temperature",
                     "climates": "Climate Entities",
                     "climates_boost": "Boost Heatpump Climates",
+                    "occupancy_sensors": "Occupancy Sensors",
+                    "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
+                    "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
                     "climate_delta_tolerance": "Climate Delta Tolerance",
                     "climate_day_start_hour": "Climate Day Start Hour",
                     "climate_night_start_hour": "Climate Night Start Hour"
@@ -20,6 +23,9 @@
                     "summer_min_temp": "Summer Mode Min Outside Temperature",
                     "climates": "Climate Entities",
                     "climates_boost": "Boost Heatpump Climates",
+                    "occupancy_sensors": "Occupancy Sensors",
+                    "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
+                    "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
                     "climate_delta_tolerance": "Climate Delta Tolerance",
                     "climate_day_start_hour": "Climate Day Start Hour",
                     "climate_night_start_hour": "Climate Night Start Hour"
@@ -47,7 +53,13 @@
         "binary_sensor": {
             "climate_mode_winter": { "name": "Climate Mode Winter" },
             "climate_mode_summer": { "name": "Climate Mode Summer" },
-            "climate_mode_winter_summer": { "name": "Climate Mode Winter/Summer" }
+            "climate_mode_winter_summer": { "name": "Climate Mode Winter/Summer" },
+            "is_home": { "name": "Is Home" }
+        },
+        "switch": {
+            "guest_mode": { "name": "Guest Mode" },
+            "vacation_mode": { "name": "Vacation Mode" }
         }
     }
 }
+``
