@@ -12,17 +12,11 @@ import datetime as dt
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.switch import (
-    SwitchEntity,
-    SwitchEntityDescription,
-)
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-from homeassistant.helpers.event import (
-    async_call_later,
-    async_track_state_change_event,
-)
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -48,6 +42,7 @@ VACATION_MIN_HOURS = 4
 # ------------------------------------------------------------------
 # Setup
 # ------------------------------------------------------------------
+
 
 async def async_setup_entry(
     hass: HomeAssistant,  # noqa: ARG001
@@ -92,6 +87,7 @@ async def async_setup_entry(
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _device_info(entry_id: str) -> DeviceInfo:
     return DeviceInfo(
         name="Offdelay",
@@ -123,6 +119,7 @@ def _any_occupancy_on(hass: HomeAssistant, entity_ids: list[str]) -> bool:
 # Guest Mode
 # ------------------------------------------------------------------
 
+
 class GuestModeSwitch(SwitchEntity):
     """Guest mode: auto-ON when nobody home + occupancy detected."""
 
@@ -131,7 +128,9 @@ class GuestModeSwitch(SwitchEntity):
     _attr_translation_key = "guest_mode"
     _attr_icon = "mdi:account-question"
 
-    def __init__(self, config_entry: OffdelayConfigEntry, config: dict[str, Any]) -> None:
+    def __init__(
+        self, config_entry: OffdelayConfigEntry, config: dict[str, Any]
+    ) -> None:
         self._attr_unique_id = f"{config_entry.entry_id}_guest_mode"
         self._attr_device_info = _device_info(config_entry.entry_id)
 
@@ -149,13 +148,13 @@ class GuestModeSwitch(SwitchEntity):
     def is_on(self) -> bool:
         return self._is_on
 
-    async def async_turn_on(self, **_: Any) -> None:
+    async def async_turn_on(self, **_: object) -> None:
         self._cancel_all_timers()
         self._manual_override = True
         self._is_on = True
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **_: Any) -> None:
+    async def async_turn_off(self, **_: object) -> None:
         self._cancel_all_timers()
         self._manual_override = True
         self._is_on = False
@@ -256,6 +255,7 @@ class GuestModeSwitch(SwitchEntity):
 # Vacation Mode
 # ------------------------------------------------------------------
 
+
 class VacationModeSwitch(SwitchEntity):
     """Vacation mode: auto-OFF after arrival home, min 4h."""
 
@@ -278,14 +278,14 @@ class VacationModeSwitch(SwitchEntity):
     def is_on(self) -> bool:
         return self._is_on
 
-    async def async_turn_on(self, **_: Any) -> None:
+    async def async_turn_on(self, **_: object) -> None:
         self._cancel()
         self._manual_override = True
         self._is_on = True
         self._on_since = dt_util.utcnow()
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **_: Any) -> None:
+    async def async_turn_off(self, **_: object) -> None:
         self._cancel()
         self._manual_override = True
         self._is_on = False
@@ -320,9 +320,15 @@ class VacationModeSwitch(SwitchEntity):
             self._timer = async_call_later(
                 self.hass,
                 remaining.total_seconds(),
-                lambda _: self._turn_off(),
+                self._async_turn_off_callback,
             )
 
+    @callback
+    def _async_turn_off_callback(self, _now: dt.datetime) -> None:
+        self._timer = None
+        self._turn_off()
+
+    @callback
     def _turn_off(self) -> None:
         self._is_on = False
         self._on_since = None
@@ -337,6 +343,7 @@ class VacationModeSwitch(SwitchEntity):
 # ------------------------------------------------------------------
 # Boost Switch
 # ------------------------------------------------------------------
+
 
 class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
     """Switch to control heatpump boost mode."""
@@ -355,8 +362,8 @@ class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
         boost_state = self.coordinator.data.get("boost_state", {})
         return boost_state.get(self._climate_entity_id, False)
 
-    async def async_turn_on(self, **_: Any) -> None:
+    async def async_turn_on(self, **_: object) -> None:
         self.coordinator.set_boost_active(self._climate_entity_id, active=True)
 
-    async def async_turn_off(self, **_: Any) -> None:
+    async def async_turn_off(self, **_: object) -> None:
         self.coordinator.set_boost_active(self._climate_entity_id, active=False)

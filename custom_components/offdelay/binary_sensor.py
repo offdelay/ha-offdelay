@@ -13,12 +13,7 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .const import (
-    ATTRIBUTION,
-    CONF_CLIMATES_BOOST,
-    DATA_CLIMATE_MODE,
-    DOMAIN,
-)
+from .const import ATTRIBUTION, CONF_CLIMATES_BOOST, DATA_CLIMATE_MODE, DOMAIN
 from .entity import OffdelayEntity
 
 if TYPE_CHECKING:
@@ -56,6 +51,7 @@ ZONE_HOME_ENTITY = "zone.home"
 # ------------------------------------------------------------------
 # Setup
 # ------------------------------------------------------------------
+
 
 async def async_setup_entry(
     hass: HomeAssistant,  # noqa: ARG001
@@ -108,6 +104,7 @@ async def async_setup_entry(
 # Climate Mode Sensors
 # ------------------------------------------------------------------
 
+
 class OffdelayBinarySensor(OffdelayEntity, BinarySensorEntity):
     """Binary sensor representing climate mode state."""
 
@@ -129,6 +126,7 @@ class OffdelayBinarySensor(OffdelayEntity, BinarySensorEntity):
 # ------------------------------------------------------------------
 # Boost Sensors
 # ------------------------------------------------------------------
+
 
 class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
     """Binary sensor for heatpump boost activation (season-specific)."""
@@ -163,6 +161,7 @@ class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
 # ------------------------------------------------------------------
 # Presence Sensor
 # ------------------------------------------------------------------
+
 
 class OffdelayHomeBinarySensor(BinarySensorEntity):
     """Binary sensor: ON when at least one person is in zone.home."""

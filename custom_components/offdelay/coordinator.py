@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from operator import itemgetter
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -129,7 +130,10 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return {DATA_CLIMATE_MODE: mode}
 
     def _climate_mode_logic(
-        self, climates: list[str], current_mode: str, current_data: dict[str, Any]
+        self,
+        climates: list[str],  # noqa: ARG002
+        current_mode: str,
+        current_data: dict[str, Any],
     ) -> dict[str, Any]:
         """Determine climate mode from indoor climate entity temperatures.
 
@@ -198,24 +202,18 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if mode == CLIMATE_MODE_WINTER:
             # Pick most negative delta (room most above target = least needing heat)
             negatives = [d for d in delta_values if d < 0]
-            if negatives:
-                selected = min(negatives)
-            else:
-                selected = 0.0
+            selected = min(negatives) if negatives else 0.0
             LOGGER.debug("Winter delta selected: %s", selected)
             return selected
         if mode == CLIMATE_MODE_SUMMER:
             # Pick most positive delta (room most below target = least needing cooling)
             positives = [d for d in delta_values if d > 0]
-            if positives:
-                selected = max(positives)
-            else:
-                selected = 0.0
+            selected = max(positives) if positives else 0.0
             LOGGER.debug("Summer delta selected: %s", selected)
             return selected
         if mode == CLIMATE_MODE_OFF:
             deltas_with_abs = [(entity, delta, abs(delta)) for entity, delta in deltas]
-            deltas_with_abs.sort(key=lambda x: x[2], reverse=True)
+            deltas_with_abs.sort(key=itemgetter(2), reverse=True)
             selected = deltas_with_abs[0][1]
             LOGGER.debug(
                 "OFF delta selected: %s (from %s)", selected, deltas_with_abs[0][0]

@@ -58,7 +58,7 @@ CLIMATE_ENTITY_DESCRIPTIONS = (
 )
 
 
-async def async_setup_entry(  # noqa: RUF029
+async def async_setup_entry(
     hass: HomeAssistant,  # noqa: ARG001 Unused function argument: `hass`
     entry: OffdelayConfigEntry,
     async_add_entities: AddEntitiesCallback,

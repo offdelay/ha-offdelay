@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers import selector
+import voluptuous as vol
 
 from .const import (
     CONF_CLIMATE_DAY_START_HOUR,
@@ -146,7 +145,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         step=0.1,
                     )
                 ),
-
                 # -------------------------------------------------
                 # Climate timing
                 # -------------------------------------------------
@@ -172,7 +170,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         step=1,
                     )
                 ),
-
                 # -------------------------------------------------
                 # Climate entities
                 # -------------------------------------------------
@@ -194,7 +191,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         multiple=True,
                     )
                 ),
-
                 # -------------------------------------------------
                 # Guest mode
                 # -------------------------------------------------
