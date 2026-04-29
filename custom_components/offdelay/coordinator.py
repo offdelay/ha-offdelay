@@ -6,7 +6,7 @@ from operator import itemgetter
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -233,9 +233,6 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             dict[str, Any]: The weather data.
 
-        Raises:
-            UpdateFailed: If fetching weather data fails.
-
         """
         # Determine weather entity
         weather_entity: str | None = None
@@ -245,7 +242,10 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             weather_entity = "weather.home"
 
         if weather_entity is None:
-            raise UpdateFailed("No weather entity found")
+            LOGGER.warning(
+                "No available weather entity found for Offdelay weather data"
+            )
+            return {}
 
         # Fetch daily forecast only
         daily_response: dict[str, Any] | None = await self.hass.services.async_call(
