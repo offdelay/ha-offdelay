@@ -16,6 +16,7 @@ from .const import (
     CONF_GUEST_TURN_OFF_DELAY,
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
+    CONF_PERSONS,
     CONF_SUMMER_MIN_TEMP,
     CONF_WINTER_MAX_TEMP,
     DOMAIN,
@@ -221,6 +222,18 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         mode="box",
                         min=0,
                         step=1,
+                    )
+                ),
+                # -------------------------------------------------
+                # Proximity
+                # -------------------------------------------------
+                vol.Optional(
+                    CONF_PERSONS,
+                    default=defaults.get(CONF_PERSONS, []),
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="person",
+                        multiple=True,
                     )
                 ),
             }

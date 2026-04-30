@@ -14,7 +14,7 @@ from pytest_homeassistant_custom_component.common import (
 
 from custom_components.offdelay.const import DOMAIN
 
-from .const import MOCK_CONFIG, MOCK_CONFIG_WITH_OCCUPANCY
+from .const import MOCK_CONFIG, MOCK_CONFIG_WITH_OCCUPANCY, MOCK_CONFIG_WITH_PERSONS
 
 
 @pytest.fixture(autouse=True)
@@ -264,3 +264,52 @@ async def test_vacation_mode_manual_off(hass: HomeAssistant):
         blocking=True,
     )
     assert hass.states.get("switch.offdelay_vacation_mode").state == STATE_OFF
+
+
+async def test_proximity_sensor_created(hass: HomeAssistant) -> None:
+    """Given persons configured, proximity sensor is created with correct attributes."""
+    hass.states.async_set("zone.home", "0")
+
+    hass.states.async_set(
+        "device_tracker.john_phone",
+        "not_home",
+        {"device_id": "device_123", "friendly_name": "John's Phone"},
+    )
+    hass.states.async_set(
+        "device_tracker.jane_phone",
+        "not_home",
+        {"device_id": "device_456", "friendly_name": "Jane's Phone"},
+    )
+
+    hass.states.async_set(
+        "person.john",
+        "not_home",
+        {"friendly_name": "John", "device_ids": ["device_123"]},
+    )
+    hass.states.async_set(
+        "person.jane",
+        "not_home",
+        {"friendly_name": "Jane", "device_ids": ["device_456"]},
+    )
+
+    await _setup_entry(hass, MOCK_CONFIG_WITH_PERSONS)
+
+    state = hass.states.get("sensor.home_nearest_distance")
+    assert state is not None, (
+        "Proximity sensor 'sensor.home_nearest_distance' was not created"
+    )
+
+    assert state.attributes.get("unit_of_measurement") == "m"
+    assert state.attributes.get("friendly_name") == "home Nearest distance"
+
+    proximity_entries = hass.config_entries.async_entries("proximity")
+    assert len(proximity_entries) >= 1, "No proximity config entries were created"
+
+    home_proximity = next(
+        (entry for entry in proximity_entries if entry.data.get("zone") == "zone.home"),
+        None,
+    )
+    assert home_proximity is not None, (
+        "Proximity config entry for 'zone.home' was not created"
+    )
+    assert home_proximity.data["tolerance"] == 20
