@@ -74,12 +74,36 @@ async def test_config_flow_winter_summer_temp_too_close(hass: HomeAssistant):
 
 async def test_config_flow_valid_climate_config(hass: HomeAssistant):
     """Test valid config succeeds."""
+    climate_keys = {
+        "winter_max_temp",
+        "summer_min_temp",
+        "climates",
+        "climate_delta_tolerance",
+        "climate_day_start_hour",
+        "climate_night_start_hour",
+    }
+    climate_input = {
+        k: v for k, v in MOCK_CONFIG_WITH_CLIMATE.items() if k in climate_keys
+    }
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        user_input=MOCK_CONFIG_WITH_CLIMATE,
+        user_input=climate_input,
+    )
+    assert result["step_id"] == "presence"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "guest_turn_on_delay": 5,
+            "guest_turn_off_delay": 15,
+        },
+    )
+    assert result["step_id"] == "energy"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={},
     )
     assert result["type"] == "create_entry"
 

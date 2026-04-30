@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant import config_entries
 from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers import selector
@@ -24,72 +26,189 @@ from .const import (
 
 
 class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Offdelay."""
+    """Config flow for Offdelay (Climate -> Presence -> Energy steps)."""
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialize the flow handler."""
+        self._data: dict[str, Any] = {}
+
     # -------------------------------------------------------------
-    # Initial setup
+    # Initial setup -- Climate step
     # -------------------------------------------------------------
 
     async def async_step_user(
         self,
         user_input: dict | None = None,
     ) -> config_entries.ConfigFlowResult:
-        """Handle the initial configuration step."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            self._validate(user_input, errors)
-
-            if not errors:
-                return self.async_create_entry(
-                    title="Offdelay",
-                    data=user_input,
-                )
-
-        return self.async_show_form(
+        """Handle the Climate step of the initial configuration flow."""
+        return await self._async_handle_climate_step(
+            user_input,
             step_id="user",
+            defaults=self._data,
             description_placeholders={
                 "docs_url": "https://github.com/offdelay/offdelay_integration",
             },
-            data_schema=self._schema(user_input),
-            errors=errors,
         )
 
     # -------------------------------------------------------------
-    # Reconfigure
+    # Reconfigure -- Menu
     # -------------------------------------------------------------
 
     async def async_step_reconfigure(
         self,
+        user_input: dict | None = None,  # noqa: ARG002
+    ) -> config_entries.ConfigFlowResult:
+        """Show the reconfigure menu so the user picks which group to edit."""
+        self._reconfigure = True
+        if not self._data:
+            self._data = dict(self._get_reconfigure_entry().data)
+        return self.async_show_menu(
+            step_id="reconfigure",
+            menu_options=[
+                "reconfigure_climate",
+                "reconfigure_presence",
+                "reconfigure_energy",
+            ],
+        )
+
+    # -------------------------------------------------------------
+    # Reconfigure -- Climate group
+    # -------------------------------------------------------------
+
+    async def async_step_reconfigure_climate(
+        self,
         user_input: dict | None = None,
     ) -> config_entries.ConfigFlowResult:
-        """Handle reconfiguration."""
-        entry = self._get_reconfigure_entry()
+        """Edit only the Climate group during reconfigure."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             self._validate(user_input, errors)
-
             if not errors:
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data=user_input,
-                )
+                return self._async_save_reconfigure(user_input)
 
         return self.async_show_form(
-            step_id="reconfigure",
-            data_schema=self._schema(entry.data),
+            step_id="reconfigure_climate",
+            data_schema=self._climate_schema(user_input or self._data),
             errors=errors,
+        )
+
+    # -------------------------------------------------------------
+    # Reconfigure -- Presence group
+    # -------------------------------------------------------------
+
+    async def async_step_reconfigure_presence(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Edit only the Presence group during reconfigure."""
+        if user_input is not None:
+            return self._async_save_reconfigure(user_input)
+
+        return self.async_show_form(
+            step_id="reconfigure_presence",
+            data_schema=self._presence_schema(self._data),
+        )
+
+    # -------------------------------------------------------------
+    # Reconfigure -- Energy group
+    # -------------------------------------------------------------
+
+    async def async_step_reconfigure_energy(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Edit only the Energy group during reconfigure."""
+        if user_input is not None:
+            return self._async_save_reconfigure(user_input)
+
+        return self.async_show_form(
+            step_id="reconfigure_energy",
+            data_schema=self._energy_schema(self._data),
+        )
+
+    # -------------------------------------------------------------
+    # Presence step (shared between setup and reconfigure)
+    # -------------------------------------------------------------
+
+    async def async_step_presence(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle the Presence step (guest mode, persons, occupancy)."""
+        if user_input is not None:
+            self._data.update(user_input)
+            return await self.async_step_energy()
+
+        return self.async_show_form(
+            step_id="presence",
+            data_schema=self._presence_schema(self._data),
+        )
+
+    # -------------------------------------------------------------
+    # Energy step (shared between setup and reconfigure)
+    # -------------------------------------------------------------
+
+    async def async_step_energy(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle the Energy step (boost heat pump climates) and finalize setup."""
+        if user_input is not None:
+            self._data.update(user_input)
+            return self.async_create_entry(
+                title="Offdelay",
+                data=self._data,
+            )
+
+        return self.async_show_form(
+            step_id="energy",
+            data_schema=self._energy_schema(self._data),
         )
 
     # -------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------
 
+    def _async_save_reconfigure(
+        self, user_input: dict
+    ) -> config_entries.ConfigFlowResult:
+        """Merge the edited group into entry data and finish the reconfigure."""
+        self._data.update(user_input)
+        return self.async_update_reload_and_abort(
+            self._get_reconfigure_entry(),
+            data=self._data,
+        )
+
+    async def _async_handle_climate_step(
+        self,
+        user_input: dict | None,
+        *,
+        step_id: str,
+        defaults: dict,
+        description_placeholders: dict[str, str] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Show or process the Climate step (owns cross-field validation)."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            self._validate(user_input, errors)
+
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_presence()
+
+        return self.async_show_form(
+            step_id=step_id,
+            description_placeholders=description_placeholders,
+            data_schema=self._climate_schema(user_input or defaults),
+            errors=errors,
+        )
+
     def _validate(self, user_input: dict, errors: dict) -> None:
-        """Validate user input."""
+        """Validate Climate step user input."""
         winter = user_input[CONF_WINTER_MAX_TEMP]
         summer = user_input[CONF_SUMMER_MIN_TEMP]
 
@@ -107,15 +226,12 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if day_hour >= night_hour:
             errors["base"] = "day_night_hour_conflict"
 
-    def _schema(self, defaults: dict | None) -> vol.Schema:
-        """Return the configuration schema."""
+    def _climate_schema(self, defaults: dict | None) -> vol.Schema:
+        """Return the Climate group schema."""
         defaults = defaults or {}
 
         return vol.Schema(
             {
-                # -------------------------------------------------
-                # Climate thresholds
-                # -------------------------------------------------
                 vol.Required(
                     CONF_WINTER_MAX_TEMP,
                     default=defaults.get(CONF_WINTER_MAX_TEMP, 20.0),
@@ -146,9 +262,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         step=0.1,
                     )
                 ),
-                # -------------------------------------------------
-                # Climate timing
-                # -------------------------------------------------
                 vol.Required(
                     CONF_CLIMATE_DAY_START_HOUR,
                     default=defaults.get(CONF_CLIMATE_DAY_START_HOUR, 8),
@@ -171,9 +284,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         step=1,
                     )
                 ),
-                # -------------------------------------------------
-                # Climate entities
-                # -------------------------------------------------
                 vol.Optional(
                     CONF_CLIMATES,
                     default=defaults.get(CONF_CLIMATES, []),
@@ -183,18 +293,15 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         multiple=True,
                     )
                 ),
-                vol.Optional(
-                    CONF_CLIMATES_BOOST,
-                    default=defaults.get(CONF_CLIMATES_BOOST, []),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="climate",
-                        multiple=True,
-                    )
-                ),
-                # -------------------------------------------------
-                # Guest mode
-                # -------------------------------------------------
+            }
+        )
+
+    def _presence_schema(self, defaults: dict | None) -> vol.Schema:
+        """Return the Presence group schema."""
+        defaults = defaults or {}
+
+        return vol.Schema(
+            {
                 vol.Optional(
                     CONF_OCCUPANCY_SENSORS,
                     default=defaults.get(CONF_OCCUPANCY_SENSORS, []),
@@ -224,15 +331,30 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         step=1,
                     )
                 ),
-                # -------------------------------------------------
-                # Proximity
-                # -------------------------------------------------
                 vol.Optional(
                     CONF_PERSONS,
                     default=defaults.get(CONF_PERSONS, []),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="person",
+                        multiple=True,
+                    )
+                ),
+            }
+        )
+
+    def _energy_schema(self, defaults: dict | None) -> vol.Schema:
+        """Return the Energy group schema (boost climates only for now)."""
+        defaults = defaults or {}
+
+        return vol.Schema(
+            {
+                vol.Optional(
+                    CONF_CLIMATES_BOOST,
+                    default=defaults.get(CONF_CLIMATES_BOOST, []),
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="climate",
                         multiple=True,
                     )
                 ),

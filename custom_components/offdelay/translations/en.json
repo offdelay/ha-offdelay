@@ -2,33 +2,70 @@
     "config": {
         "step": {
             "user": {
-                "description": "If you need help with the configuration, see the documentation at {docs_url}.",
+                "title": "Climate",
+                "description": "Configure climate thresholds and entities. If you need help with the configuration, see the documentation at {docs_url}.",
                 "data": {
                     "winter_max_temp": "Winter Mode Max Outside Temperature",
                     "summer_min_temp": "Summer Mode Min Outside Temperature",
-                    "climates": "Climate Entities",
-                    "climates_boost": "Boost Heatpump Climates",
-                    "occupancy_sensors": "Occupancy Sensors",
-                    "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
-                    "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
                     "climate_delta_tolerance": "Climate Delta Tolerance",
                     "climate_day_start_hour": "Climate Day Start Hour",
-                    "climate_night_start_hour": "Climate Night Start Hour"
+                    "climate_night_start_hour": "Climate Night Start Hour",
+                    "climates": "Climate Entities"
                 }
             },
             "reconfigure": {
-                "description": "Update the configuration for this integration.",
+                "title": "Reconfigure Offdelay",
+                "description": "Choose which configuration group to update.",
+                "menu_options": {
+                    "reconfigure_climate": "Climate",
+                    "reconfigure_presence": "Presence",
+                    "reconfigure_energy": "Energy"
+                }
+            },
+            "reconfigure_climate": {
+                "title": "Climate",
+                "description": "Update climate thresholds and entities.",
                 "data": {
                     "winter_max_temp": "Winter Mode Max Outside Temperature",
                     "summer_min_temp": "Summer Mode Min Outside Temperature",
-                    "climates": "Climate Entities",
-                    "climates_boost": "Boost Heatpump Climates",
+                    "climate_delta_tolerance": "Climate Delta Tolerance",
+                    "climate_day_start_hour": "Climate Day Start Hour",
+                    "climate_night_start_hour": "Climate Night Start Hour",
+                    "climates": "Climate Entities"
+                }
+            },
+            "reconfigure_presence": {
+                "title": "Presence",
+                "description": "Update occupancy sensors, guest mode delays, and tracked persons.",
+                "data": {
                     "occupancy_sensors": "Occupancy Sensors",
                     "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
                     "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
-                    "climate_delta_tolerance": "Climate Delta Tolerance",
-                    "climate_day_start_hour": "Climate Day Start Hour",
-                    "climate_night_start_hour": "Climate Night Start Hour"
+                    "persons": "Persons"
+                }
+            },
+            "reconfigure_energy": {
+                "title": "Energy",
+                "description": "Update energy-related entities. Currently manages boost heat pump climates.",
+                "data": {
+                    "climates_boost": "Boost Heatpump Climates"
+                }
+            },
+            "presence": {
+                "title": "Presence",
+                "description": "Configure occupancy sensors, guest mode delays, and tracked persons.",
+                "data": {
+                    "occupancy_sensors": "Occupancy Sensors",
+                    "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
+                    "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
+                    "persons": "Persons"
+                }
+            },
+            "energy": {
+                "title": "Energy",
+                "description": "Configure energy-related entities. Currently manages boost heat pump climates.",
+                "data": {
+                    "climates_boost": "Boost Heatpump Climates"
                 }
             }
         },
