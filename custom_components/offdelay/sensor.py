@@ -12,13 +12,14 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfTemperature
 
-from .const import CONF_CLIMATES, DATA_CLIMATE_DELTA_TO_TARGET
+from .const import CONF_SUMMER_NIGHT_TEMP_SENSOR, CONF_WINTER_NIGHT_TEMP_SENSOR
 from .entity import OffdelayEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+    from .coordinator import OffdelayDataUpdateCoordinator
     from .data import OffdelayConfigEntry
 
 WEATHER_ENTITY_DESCRIPTIONS = (
@@ -36,15 +37,27 @@ WEATHER_ENTITY_DESCRIPTIONS = (
     ),
 )
 
-CLIMATE_ENTITY_DESCRIPTIONS = (
+NIGHT_TEMP_SENSOR_DESCRIPTIONS = (
     SensorEntityDescription(
-        key=DATA_CLIMATE_DELTA_TO_TARGET,
-        translation_key="climate_delta_to_target",
+        key="summer_night_temp_reading",
+        translation_key="summer_night_temp_reading",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        icon="mdi:thermometer-lines",
+        icon="mdi:weather-sunny",
+    ),
+    SensorEntityDescription(
+        key="winter_night_temp_reading",
+        translation_key="winter_night_temp_reading",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        icon="mdi:snowflake",
     ),
 )
+
+NIGHT_SENSOR_CONFIG_MAP = {
+    "summer_night_temp_reading": CONF_SUMMER_NIGHT_TEMP_SENSOR,
+    "winter_night_temp_reading": CONF_WINTER_NIGHT_TEMP_SENSOR,
+}
 
 
 async def async_setup_entry(
@@ -55,7 +68,7 @@ async def async_setup_entry(
     """Set up the sensor platform."""
     coordinator = entry.runtime_data.coordinator
 
-    entities: list[OffdelaySensor | OffdelayWeatherSensor] = [
+    entities: list[OffdelaySensor | OffdelayWeatherSensor | OffdelayNightTempSensor] = [
         OffdelayWeatherSensor(
             coordinator=coordinator,
             entity_description=desc,
@@ -63,14 +76,17 @@ async def async_setup_entry(
         for desc in WEATHER_ENTITY_DESCRIPTIONS
     ]
 
-    if entry.data.get(CONF_CLIMATES):
-        entities.extend(
-            OffdelaySensor(
-                coordinator=coordinator,
-                entity_description=desc,
+    for desc in NIGHT_TEMP_SENSOR_DESCRIPTIONS:
+        config_key = NIGHT_SENSOR_CONFIG_MAP[desc.key]
+        source_entity_id = entry.data.get(config_key, "")
+        if source_entity_id:
+            entities.append(
+                OffdelayNightTempSensor(
+                    coordinator=coordinator,
+                    entity_description=desc,
+                    source_entity_id=source_entity_id,
+                )
             )
-            for desc in CLIMATE_ENTITY_DESCRIPTIONS
-        )
 
     async_add_entities(entities)
 
@@ -82,6 +98,33 @@ class OffdelaySensor(OffdelayEntity, SensorEntity):
     def native_value(self) -> float | int | str | None:
         """Return the native value of the sensor."""
         return self.coordinator.data.get(self.entity_description.key)
+
+
+class OffdelayNightTempSensor(OffdelayEntity, SensorEntity):
+    """Sensor that mirrors a configured night temperature sensor."""
+
+    def __init__(
+        self,
+        coordinator: OffdelayDataUpdateCoordinator,
+        entity_description: SensorEntityDescription,
+        source_entity_id: str,
+    ) -> None:
+        """Initialize with source entity ID."""
+        super().__init__(coordinator, entity_description)
+        self._source_entity_id = source_entity_id
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current temperature from the source sensor."""
+        if not self._source_entity_id:
+            return None
+        state = self.coordinator.hass.states.get(self._source_entity_id)
+        if state is None or state.state in {"unavailable", "unknown"}:
+            return None
+        try:
+            return float(state.state)
+        except (ValueError, TypeError):
+            return None
 
 
 class OffdelayWeatherSensor(OffdelayEntity, RestoreSensor):

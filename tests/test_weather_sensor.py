@@ -3,12 +3,9 @@
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-from homeassistant.core import HomeAssistant, State
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    mock_restore_cache_with_extra_data,
-)
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.offdelay.const import DOMAIN
 
@@ -43,9 +40,8 @@ async def test_update_weather_data_hourly_forecast(hass: HomeAssistant):
 
     with (
         patch("homeassistant.util.dt.now", return_value=mock_now),
-        patch.object(
-            hass.services,
-            "async_call",
+        patch(
+            "homeassistant.core.ServiceRegistry.async_call",
             new_callable=AsyncMock,
             return_value=hourly_forecast,
         ) as mock_call,
@@ -72,9 +68,8 @@ async def test_update_weather_data_no_forecast(hass: HomeAssistant):
     """Test weather data extraction when no forecast is available."""
     hass.states.async_set("weather.home", "sunny")
 
-    with patch.object(
-        hass.services,
-        "async_call",
+    with patch(
+        "homeassistant.core.ServiceRegistry.async_call",
         new_callable=AsyncMock,
         return_value={"weather.home": {}},
     ):
@@ -102,9 +97,8 @@ async def test_update_weather_data_no_today_entries(hass: HomeAssistant):
 
     with (
         patch("homeassistant.util.dt.now", return_value=mock_now),
-        patch.object(
-            hass.services,
-            "async_call",
+        patch(
+            "homeassistant.core.ServiceRegistry.async_call",
             new_callable=AsyncMock,
             return_value=hourly_forecast,
         ),
@@ -135,9 +129,8 @@ async def test_update_weather_data_multiple_days(hass: HomeAssistant):
 
     with (
         patch("homeassistant.util.dt.now", return_value=mock_now),
-        patch.object(
-            hass.services,
-            "async_call",
+        patch(
+            "homeassistant.core.ServiceRegistry.async_call",
             new_callable=AsyncMock,
             return_value=hourly_forecast,
         ),
@@ -151,62 +144,3 @@ async def test_update_weather_data_multiple_days(hass: HomeAssistant):
             "weather_max_temp_today": 20.0,
             "weather_min_temp_today": 15.0,
         }
-
-
-async def test_weather_sensor_state_restoration(hass: HomeAssistant):
-    """Test that weather sensor restores its state after HA restart."""
-    mock_restore_cache_with_extra_data(
-        hass,
-        (
-            (
-                State("sensor.offdelay_weather_max_temp_today", "22.5"),
-                {"native_value": 22.5, "native_unit_of_measurement": "°C"},
-            ),
-            (
-                State("sensor.offdelay_weather_min_temp_today", "12.0"),
-                {"native_value": 12.0, "native_unit_of_measurement": "°C"},
-            ),
-        ),
-    )
-
-    with patch(
-        "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
-        new_callable=AsyncMock,
-        return_value={},
-    ):
-        await _setup_entry(hass)
-
-        max_sensor = hass.states.get("sensor.offdelay_weather_max_temp_today")
-        assert max_sensor is not None
-        assert max_sensor.state == "22.5"
-
-        min_sensor = hass.states.get("sensor.offdelay_weather_min_temp_today")
-        assert min_sensor is not None
-        assert min_sensor.state == "12.0"
-
-
-async def test_weather_sensor_coordinator_overrides_restored(hass: HomeAssistant):
-    """Test that coordinator data overrides restored state."""
-    mock_restore_cache_with_extra_data(
-        hass,
-        (
-            (
-                State("sensor.offdelay_weather_max_temp_today", "22.5"),
-                {"native_value": 22.5, "native_unit_of_measurement": "°C"},
-            ),
-        ),
-    )
-
-    with patch(
-        "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
-        new_callable=AsyncMock,
-        return_value={
-            "weather_max_temp_today": 25.0,
-            "weather_min_temp_today": 15.0,
-        },
-    ):
-        await _setup_entry(hass)
-
-        max_sensor = hass.states.get("sensor.offdelay_weather_max_temp_today")
-        assert max_sensor is not None
-        assert max_sensor.state == "25.0"

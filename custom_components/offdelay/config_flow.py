@@ -11,16 +11,20 @@ import voluptuous as vol
 
 from .const import (
     CONF_CLIMATE_DAY_START_HOUR,
-    CONF_CLIMATE_DELTA_TOLERANCE,
     CONF_CLIMATE_NIGHT_START_HOUR,
-    CONF_CLIMATES,
     CONF_CLIMATES_BOOST,
     CONF_GUEST_TURN_OFF_DELAY,
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
     CONF_PERSONS,
     CONF_SUMMER_MIN_TEMP,
+    CONF_SUMMER_NIGHT_MAX_TEMP,
+    CONF_SUMMER_NIGHT_MIN_TEMP,
+    CONF_SUMMER_NIGHT_TEMP_SENSOR,
     CONF_WINTER_MAX_TEMP,
+    CONF_WINTER_NIGHT_MAX_TEMP,
+    CONF_WINTER_NIGHT_MIN_TEMP,
+    CONF_WINTER_NIGHT_TEMP_SENSOR,
     DOMAIN,
 )
 
@@ -253,16 +257,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 ),
                 vol.Required(
-                    CONF_CLIMATE_DELTA_TOLERANCE,
-                    default=defaults.get(CONF_CLIMATE_DELTA_TOLERANCE, 0.5),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode="box",
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        step=0.1,
-                    )
-                ),
-                vol.Required(
                     CONF_CLIMATE_DAY_START_HOUR,
                     default=defaults.get(CONF_CLIMATE_DAY_START_HOUR, 8),
                 ): selector.NumberSelector(
@@ -285,12 +279,61 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 ),
                 vol.Optional(
-                    CONF_CLIMATES,
-                    default=defaults.get(CONF_CLIMATES, []),
+                    CONF_SUMMER_NIGHT_TEMP_SENSOR,
+                    default=defaults.get(CONF_SUMMER_NIGHT_TEMP_SENSOR, ""),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain="climate",
-                        multiple=True,
+                        domain="sensor",
+                        multiple=False,
+                    )
+                ),
+                vol.Required(
+                    CONF_SUMMER_NIGHT_MAX_TEMP,
+                    default=defaults.get(CONF_SUMMER_NIGHT_MAX_TEMP, 20.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Required(
+                    CONF_SUMMER_NIGHT_MIN_TEMP,
+                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 20.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Optional(
+                    CONF_WINTER_NIGHT_TEMP_SENSOR,
+                    default=defaults.get(CONF_WINTER_NIGHT_TEMP_SENSOR, ""),
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        multiple=False,
+                    )
+                ),
+                vol.Required(
+                    CONF_WINTER_NIGHT_MAX_TEMP,
+                    default=defaults.get(CONF_WINTER_NIGHT_MAX_TEMP, 20.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Required(
+                    CONF_WINTER_NIGHT_MIN_TEMP,
+                    default=defaults.get(CONF_WINTER_NIGHT_MIN_TEMP, 20.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
                     )
                 ),
             }
