@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
     from .data import OffdelayConfigEntry
 
-ENTITY_DESCRIPTIONS = (
+WEATHER_ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
         key="weather_max_temp_today",
         translation_key="weather_max_temp_today",
@@ -52,16 +53,26 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    descriptions = list(ENTITY_DESCRIPTIONS)
-    if entry.data.get(CONF_CLIMATES):
-        descriptions.extend(CLIMATE_ENTITY_DESCRIPTIONS)
-    async_add_entities(
-        OffdelaySensor(
-            coordinator=entry.runtime_data.coordinator,
-            entity_description=entity_description,
+    coordinator = entry.runtime_data.coordinator
+
+    entities: list[OffdelaySensor | OffdelayWeatherSensor] = [
+        OffdelayWeatherSensor(
+            coordinator=coordinator,
+            entity_description=desc,
         )
-        for entity_description in descriptions
-    )
+        for desc in WEATHER_ENTITY_DESCRIPTIONS
+    ]
+
+    if entry.data.get(CONF_CLIMATES):
+        entities.extend(
+            OffdelaySensor(
+                coordinator=coordinator,
+                entity_description=desc,
+            )
+            for desc in CLIMATE_ENTITY_DESCRIPTIONS
+        )
+
+    async_add_entities(entities)
 
 
 class OffdelaySensor(OffdelayEntity, SensorEntity):
@@ -71,3 +82,21 @@ class OffdelaySensor(OffdelayEntity, SensorEntity):
     def native_value(self) -> float | int | str | None:
         """Return the native value of the sensor."""
         return self.coordinator.data.get(self.entity_description.key)
+
+
+class OffdelayWeatherSensor(OffdelayEntity, RestoreSensor):
+    """Weather sensor with state restoration across HA restarts."""
+
+    @property
+    def native_value(self) -> float | int | str | None:
+        """Return the native value of the sensor."""
+        value = self.coordinator.data.get(self.entity_description.key)
+        if value is not None:
+            return value
+        return self._attr_native_value
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last known state before registering coordinator listener."""
+        if last_sensor_data := await self.async_get_last_sensor_data():
+            self._attr_native_value = last_sensor_data.native_value
+        await super().async_added_to_hass()

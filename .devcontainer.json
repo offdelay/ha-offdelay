@@ -12,6 +12,7 @@
         "-p",
         "8123:8123"
     ],
+
     "forwardPorts": [],
     "customizations": {
         "vscode": {

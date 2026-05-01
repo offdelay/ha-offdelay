@@ -228,7 +228,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.async_set_updated_data(self.data)
 
     async def _update_weather_data(self) -> dict[str, Any]:
-        """Get weather forecast data and compute values.
+        """Get weather forecast data and compute values from hourly forecasts.
 
         Returns:
             dict[str, Any]: The weather data.
@@ -247,37 +247,43 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             return {}
 
-        # Fetch daily forecast only
-        daily_response: dict[str, Any] | None = await self.hass.services.async_call(
+        hourly_response: dict[str, Any] | None = await self.hass.services.async_call(
             "weather",
             "get_forecasts",
-            {"entity_id": weather_entity, "type": "daily"},
+            {"entity_id": weather_entity, "type": "hourly"},
             blocking=True,
             return_response=True,
         )
 
-        daily_data: dict[str, Any] = (
-            daily_response.get(weather_entity, {}) if daily_response else {}
+        hourly_data: dict[str, Any] = (
+            hourly_response.get(weather_entity, {}) if hourly_response else {}
         )
-        daily_forecast: list[dict[str, Any]] = daily_data.get("forecast", [])
+        hourly_forecast: list[dict[str, Any]] = hourly_data.get("forecast", [])
 
-        # Get today's data
-        today_data: dict[str, Any] = (
-            daily_forecast[0] if len(daily_forecast) > 0 else {}
-        )
+        if not hourly_forecast:
+            LOGGER.warning("No hourly forecast data available")
+            return {}
 
-        # Extract temperatures
-        today_max_temp: float = (
-            float(today_data.get("temperature", 17.0))
-            if isinstance(today_data.get("temperature"), (int, float))
-            else 17.0
-        )
-        today_min_temp: float = (
-            float(today_data.get("templow", 7.0))
-            if isinstance(today_data.get("templow"), (int, float))
-            else 7.0
-        )
+        today = dt_util.now().date()
+        today_temps: list[float] = []
+
+        for entry in hourly_forecast:
+            entry_dt_str = entry.get("datetime")
+            if entry_dt_str is None:
+                continue
+            entry_dt = dt_util.parse_datetime(entry_dt_str)
+            if entry_dt is None:
+                continue
+            if entry_dt.date() == today:
+                temp = entry.get("temperature")
+                if isinstance(temp, (int, float)):
+                    today_temps.append(float(temp))
+
+        if not today_temps:
+            LOGGER.warning("No hourly temperature data for today")
+            return {}
+
         return {
-            "weather_max_temp_today": today_max_temp,
-            "weather_min_temp_today": today_min_temp,
+            "weather_max_temp_today": max(today_temps),
+            "weather_min_temp_today": min(today_temps),
         }
