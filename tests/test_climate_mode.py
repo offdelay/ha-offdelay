@@ -208,8 +208,6 @@ async def test_weather_mode_during_day_window(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,  # < winter_max_temp=15
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):
@@ -236,8 +234,6 @@ async def test_weather_mode_during_day_window_summer(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 25,  # > summer_min_temp=20
                 "weather_min_temp_today": 15,
-                "weather_max_temp_tomorrow": 22,
-                "weather_min_temp_tomorrow": 12,
             },
         ),
     ):
@@ -265,8 +261,6 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):
@@ -311,8 +305,6 @@ async def test_weather_mode_all_day_no_climates(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,  # < winter_max_temp defaults
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):
@@ -348,8 +340,6 @@ async def test_weather_mode_no_climates_summer(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 25,  # > summer_min_temp
                 "weather_min_temp_today": 15,
-                "weather_max_temp_tomorrow": 22,
-                "weather_min_temp_tomorrow": 12,
             },
         ),
     ):
@@ -384,8 +374,6 @@ async def test_mode_persists_within_same_window(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):
@@ -409,8 +397,6 @@ async def test_mode_persists_within_same_window(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):
@@ -430,8 +416,6 @@ async def test_boundary_hour_inclusive_start(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):
@@ -460,8 +444,6 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
             return_value={
                 "weather_max_temp_today": 10,
                 "weather_min_temp_today": 5,
-                "weather_max_temp_tomorrow": 12,
-                "weather_min_temp_tomorrow": 7,
             },
         ),
     ):

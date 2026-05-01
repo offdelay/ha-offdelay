@@ -261,12 +261,9 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         daily_forecast: list[dict[str, Any]] = daily_data.get("forecast", [])
 
-        # Get today's and tomorrow's data
+        # Get today's data
         today_data: dict[str, Any] = (
             daily_forecast[0] if len(daily_forecast) > 0 else {}
-        )
-        tomorrow_data: dict[str, Any] = (
-            daily_forecast[1] if len(daily_forecast) > 1 else {}
         )
 
         # Extract temperatures
@@ -280,20 +277,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if isinstance(today_data.get("templow"), (int, float))
             else 7.0
         )
-        tomorrow_max_temp: float = (
-            float(tomorrow_data.get("temperature", 17.0))
-            if isinstance(tomorrow_data.get("temperature"), (int, float))
-            else 17.0
-        )
-        tomorrow_min_temp: float = (
-            float(tomorrow_data.get("templow", 7.0))
-            if isinstance(tomorrow_data.get("templow"), (int, float))
-            else 7.0
-        )
-
         return {
             "weather_max_temp_today": today_max_temp,
             "weather_min_temp_today": today_min_temp,
-            "weather_max_temp_tomorrow": tomorrow_max_temp,
-            "weather_min_temp_tomorrow": tomorrow_min_temp,
         }

@@ -33,18 +33,6 @@ ENTITY_DESCRIPTIONS = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
-    SensorEntityDescription(
-        key="weather_max_temp_tomorrow",
-        translation_key="weather_max_temp_tomorrow",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-    ),
-    SensorEntityDescription(
-        key="weather_min_temp_tomorrow",
-        translation_key="weather_min_temp_tomorrow",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-    ),
 )
 
 CLIMATE_ENTITY_DESCRIPTIONS = (

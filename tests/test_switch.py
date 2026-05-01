@@ -25,8 +25,6 @@ def bypass_weather():
         return_value={
             "weather_max_temp_today": 20,
             "weather_min_temp_today": 10,
-            "weather_max_temp_tomorrow": 22,
-            "weather_min_temp_tomorrow": 12,
         },
     ):
         yield
