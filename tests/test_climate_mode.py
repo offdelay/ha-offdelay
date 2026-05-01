@@ -224,7 +224,17 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
     hass.states.async_set("sensor.winter_night_temp", "25.0")
 
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 10,
+                "weather_min_temp_today": 5,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "off"
@@ -391,7 +401,17 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
     hass.states.async_set("sensor.winter_night_temp", "25.0")
 
     mock_5pm = datetime(2026, 4, 24, 17, 0, 0, tzinfo=dt_util.UTC)
-    with patch("homeassistant.util.dt.now", return_value=mock_5pm):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_5pm),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 10,
+                "weather_min_temp_today": 5,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "off"
@@ -428,7 +448,17 @@ async def test_night_mode_summer_to_off(hass: HomeAssistant):
     hass.states.async_set("sensor.summer_night_temp", "15.0")
 
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 25,
+                "weather_min_temp_today": 15,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "off"
@@ -461,14 +491,34 @@ async def test_night_mode_off_to_summer(hass: HomeAssistant):
     # First transition summer -> off
     hass.states.async_set("sensor.summer_night_temp", "15.0")
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 25,
+                "weather_min_temp_today": 15,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "off"
 
     # Now off -> summer (sensor above max)
     hass.states.async_set("sensor.summer_night_temp", "25.0")
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 25,
+                "weather_min_temp_today": 15,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "summer"
@@ -501,14 +551,34 @@ async def test_night_mode_off_to_winter(hass: HomeAssistant):
     # First transition winter -> off
     hass.states.async_set("sensor.winter_night_temp", "25.0")
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 10,
+                "weather_min_temp_today": 5,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "off"
 
     # Now off -> winter (sensor below min)
     hass.states.async_set("sensor.winter_night_temp", "15.0")
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 10,
+                "weather_min_temp_today": 5,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "winter"
@@ -541,7 +611,17 @@ async def test_night_mode_sensor_unavailable(hass: HomeAssistant):
     # Night: sensor unavailable -> mode stays winter
     hass.states.async_set("sensor.winter_night_temp", "unavailable")
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
-    with patch("homeassistant.util.dt.now", return_value=mock_night):
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_night),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 10,
+                "weather_min_temp_today": 5,
+            },
+        ),
+    ):
         await coordinator.async_refresh()
         await hass.async_block_till_done()
         assert coordinator.data[DATA_CLIMATE_MODE] == "winter"

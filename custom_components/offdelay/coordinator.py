@@ -173,13 +173,17 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _update_climate_mode(self, current_data: dict[str, Any]) -> dict[str, Any]:
         """Determine climate mode based on time windows and data."""
         current_mode = self.data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
+        weather_result = self._weather_mode_logic(current_data, current_mode)
+
         has_night_sensors = bool(
             self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR)
             or self.config_entry.data.get(CONF_WINTER_NIGHT_TEMP_SENSOR)
         )
         if not has_night_sensors or self._is_day_window():
-            return self._weather_mode_logic(current_data, current_mode)
-        return self._climate_mode_logic(current_mode)
+            return weather_result
+
+        weather_mode = weather_result[DATA_CLIMATE_MODE]
+        return self._climate_mode_logic(weather_mode)
 
     def set_boost_active(self, climate_entity_id: str, active: bool) -> None:  # noqa: FBT001
         """Set boost state for a climate entity."""
