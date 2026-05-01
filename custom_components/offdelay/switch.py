@@ -44,8 +44,20 @@ VACATION_MIN_HOURS = 4
 # ------------------------------------------------------------------
 
 
+def _get_climate_friendly_name(hass: HomeAssistant, climate_entity_id: str) -> str:
+    """Get friendly name for a climate entity."""
+    state = hass.states.get(climate_entity_id)
+    if state:
+        friendly_name = state.attributes.get("friendly_name")
+        if friendly_name:
+            return friendly_name
+
+    climate_name = climate_entity_id.rsplit(".", maxsplit=1)[-1]
+    return climate_name.replace("_", " ").title()
+
+
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001
+    hass: HomeAssistant,
     entry: OffdelayConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -66,10 +78,10 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
 
     for climate_id in boost_climates:
-        climate_name = climate_id.split(".")[-1]
+        friendly_name = _get_climate_friendly_name(hass, climate_id)
         description = SwitchEntityDescription(
-            key=f"boost_{climate_name}",
-            translation_key=f"boost_{climate_name}",
+            key=f"boost_{climate_id.split('.')[-1]}",
+            name=f"{friendly_name} Boost",
             icon="mdi:heat-wave",
         )
         entities.append(
@@ -356,6 +368,8 @@ class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
     ) -> None:
         super().__init__(coordinator, entity_description)
         self._climate_entity_id = climate_entity_id
+        climate_object_id = climate_entity_id.rsplit(".", maxsplit=1)[-1]
+        self.entity_id = f"switch.{climate_object_id}_boost"
 
     @property
     def is_on(self) -> bool:

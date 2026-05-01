@@ -14,11 +14,11 @@ from .const import (
     CLIMATE_MODE_WINTER,
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
-    CONF_SUMMER_MIN_TEMP,
+    CONF_SUMMER_DAY_MIN_TEMP,
     CONF_SUMMER_NIGHT_MAX_TEMP,
     CONF_SUMMER_NIGHT_MIN_TEMP,
     CONF_SUMMER_NIGHT_TEMP_SENSOR,
-    CONF_WINTER_MAX_TEMP,
+    CONF_WINTER_DAY_MAX_TEMP,
     CONF_WINTER_NIGHT_MAX_TEMP,
     CONF_WINTER_NIGHT_MIN_TEMP,
     CONF_WINTER_NIGHT_TEMP_SENSOR,
@@ -84,8 +84,8 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             return {DATA_CLIMATE_MODE: current_mode}
 
-        winter_max = self.config_entry.data.get(CONF_WINTER_MAX_TEMP, 0.0)
-        summer_min = self.config_entry.data.get(CONF_SUMMER_MIN_TEMP, 0.0)
+        winter_max = self.config_entry.data.get(CONF_WINTER_DAY_MAX_TEMP, 0.0)
+        summer_min = self.config_entry.data.get(CONF_SUMMER_DAY_MIN_TEMP, 0.0)
 
         if weather_max_temp_today < winter_max:
             mode = "winter"

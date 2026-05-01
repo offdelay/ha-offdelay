@@ -5,16 +5,16 @@
                 "title": "Climate",
                 "description": "Configure climate thresholds and entities. If you need help with the configuration, see the documentation at {docs_url}.",
                 "data": {
-                    "winter_max_temp": "Winter Mode Max Outside Temperature",
-                    "summer_min_temp": "Summer Mode Min Outside Temperature",
-                    "climate_day_start_hour": "Climate Day Start Hour",
-                    "climate_night_start_hour": "Climate Night Start Hour",
+                    "climate_day_start_hour": "Climate Day Logic Start Hour",
+                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
+                    "summer_day_min_temp": "Summer Mode Day Min Temperature",
+                    "climate_night_start_hour": "Climate Night Logic Start Hour",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
+                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
+                    "winter_night_min_temp": "Winter Mode Night Min Temperature",
                     "summer_night_temp_sensor": "Summer Night Temperature Sensor",
-                    "summer_night_max_temp": "Summer Night Max Temperature",
-                    "summer_night_min_temp": "Summer Night Min Temperature",
-                    "winter_night_temp_sensor": "Winter Night Temperature Sensor",
-                    "winter_night_max_temp": "Winter Night Max Temperature",
-                    "winter_night_min_temp": "Winter Night Min Temperature"
+                    "summer_night_max_temp": "Summer Mode Night Max Temperature",
+                    "summer_night_min_temp": "Summer Mode Night Min Temperature"
                 }
             },
             "reconfigure": {
@@ -30,16 +30,16 @@
                 "title": "Climate",
                 "description": "Update climate thresholds and entities.",
                 "data": {
-                    "winter_max_temp": "Winter Mode Max Outside Temperature",
-                    "summer_min_temp": "Summer Mode Min Outside Temperature",
-                    "climate_day_start_hour": "Climate Day Start Hour",
-                    "climate_night_start_hour": "Climate Night Start Hour",
+                    "climate_day_start_hour": "Climate Day Logic Start Hour",
+                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
+                    "summer_day_min_temp": "Summer Mode Day Min Temperature",
+                    "climate_night_start_hour": "Climate Night Logic Start Hour",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
+                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
+                    "winter_night_min_temp": "Winter Mode Night Min Temperature",
                     "summer_night_temp_sensor": "Summer Night Temperature Sensor",
-                    "summer_night_max_temp": "Summer Night Max Temperature",
-                    "summer_night_min_temp": "Summer Night Min Temperature",
-                    "winter_night_temp_sensor": "Winter Night Temperature Sensor",
-                    "winter_night_max_temp": "Winter Night Max Temperature",
-                    "winter_night_min_temp": "Winter Night Min Temperature"
+                    "summer_night_max_temp": "Summer Mode Night Max Temperature",
+                    "summer_night_min_temp": "Summer Mode Night Min Temperature"
                 }
             },
             "reconfigure_presence": {
@@ -56,7 +56,9 @@
                 "title": "Energy",
                 "description": "Update energy-related entities. Currently manages boost heat pump climates.",
                 "data": {
-                    "climates_boost": "Boost Heatpump Climates"
+                    "climates_boost": "Boost Heatpump Climates",
+                    "boost_summer_temp": "Boost Summer Temperature",
+                    "boost_winter_temp": "Boost Winter Temperature"
                 }
             },
             "presence": {
@@ -73,7 +75,9 @@
                 "title": "Energy",
                 "description": "Configure energy-related entities. Currently manages boost heat pump climates.",
                 "data": {
-                    "climates_boost": "Boost Heatpump Climates"
+                    "climates_boost": "Boost Heatpump Climates",
+                    "boost_summer_temp": "Boost Summer Temperature",
+                    "boost_winter_temp": "Boost Winter Temperature"
                 }
             }
         },
@@ -88,20 +92,40 @@
     },
     "entity": {
         "sensor": {
-            "weather_max_temp_today": { "name": "Max Temp Today" },
-            "weather_min_temp_today": { "name": "Min Temp Today" },
-            "summer_night_temp_reading": { "name": "Summer Night Temp Reading" },
-            "winter_night_temp_reading": { "name": "Winter Night Temp Reading" }
+            "weather_max_temp_today": {
+                "name": "Max Temp Today"
+            },
+            "weather_min_temp_today": {
+                "name": "Min Temp Today"
+            },
+            "summer_night_temp_reading": {
+                "name": "Summer Night Temp Reading"
+            },
+            "winter_night_temp_reading": {
+                "name": "Winter Night Temp Reading"
+            }
         },
         "binary_sensor": {
-            "climate_mode_winter": { "name": "Climate Mode Winter" },
-            "climate_mode_summer": { "name": "Climate Mode Summer" },
-            "climate_mode_winter_summer": { "name": "Climate Mode Winter/Summer" },
-            "is_home": { "name": "Is Home" }
+            "climate_mode_winter": {
+                "name": "Climate Mode Winter"
+            },
+            "climate_mode_summer": {
+                "name": "Climate Mode Summer"
+            },
+            "climate_mode_winter_summer": {
+                "name": "Climate Mode Winter/Summer"
+            },
+            "is_home": {
+                "name": "Is Home"
+            }
         },
         "switch": {
-            "guest_mode": { "name": "Guest Mode" },
-            "vacation_mode": { "name": "Vacation Mode" }
+            "guest_mode": {
+                "name": "Guest Mode"
+            },
+            "vacation_mode": {
+                "name": "Vacation Mode"
+            }
         }
     }
 }

@@ -40,8 +40,8 @@ async def test_config_flow_winter_summer_temp_conflict(hass: HomeAssistant):
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            "winter_max_temp": 25,
-            "summer_min_temp": 20,
+            "winter_day_max_temp": 25,
+            "summer_day_min_temp": 20,
             "climate_day_start_hour": 8,
             "climate_night_start_hour": 17,
             "summer_night_temp_sensor": "sensor.summer_night_temp",
@@ -63,8 +63,8 @@ async def test_config_flow_winter_summer_temp_too_close(hass: HomeAssistant):
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            "winter_max_temp": 19.95,
-            "summer_min_temp": 20.0,
+            "winter_day_max_temp": 19.95,
+            "summer_day_min_temp": 20.0,
             "climate_day_start_hour": 8,
             "climate_night_start_hour": 17,
             "summer_night_temp_sensor": "sensor.summer_night_temp",
@@ -81,8 +81,8 @@ async def test_config_flow_winter_summer_temp_too_close(hass: HomeAssistant):
 async def test_config_flow_valid_climate_config(hass: HomeAssistant):
     """Test valid config succeeds."""
     climate_keys = {
-        "winter_max_temp",
-        "summer_min_temp",
+        "winter_day_max_temp",
+        "summer_day_min_temp",
         "summer_night_temp_sensor",
         "summer_night_max_temp",
         "summer_night_min_temp",
@@ -126,8 +126,8 @@ async def test_config_flow_day_night_hour_conflict(hass: HomeAssistant):
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            "winter_max_temp": 15.0,
-            "summer_min_temp": 20.0,
+            "winter_day_max_temp": 15.0,
+            "summer_day_min_temp": 20.0,
             "climate_day_start_hour": 17,
             "climate_night_start_hour": 8,
             "summer_night_temp_sensor": "sensor.summer_night_temp",
@@ -246,8 +246,8 @@ async def test_weather_mode_all_day_no_climates(hass: HomeAssistant):
     ):
         config = {
             **MOCK_CONFIG,
-            "winter_max_temp": 15.0,
-            "summer_min_temp": 20.0,
+            "winter_day_max_temp": 15.0,
+            "summer_day_min_temp": 20.0,
             "climate_day_start_hour": 8,
             "climate_night_start_hour": 17,
         }
@@ -279,8 +279,8 @@ async def test_weather_mode_no_climates_summer(hass: HomeAssistant):
     ):
         config = {
             **MOCK_CONFIG,
-            "winter_max_temp": 15.0,
-            "summer_min_temp": 20.0,
+            "winter_day_max_temp": 15.0,
+            "summer_day_min_temp": 20.0,
             "climate_day_start_hour": 8,
             "climate_night_start_hour": 17,
         }

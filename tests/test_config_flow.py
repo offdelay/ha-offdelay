@@ -6,6 +6,8 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.offdelay.const import (
+    CONF_BOOST_SUMMER_TEMP,
+    CONF_BOOST_WINTER_TEMP,
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
     CONF_CLIMATES_BOOST,
@@ -13,11 +15,11 @@ from custom_components.offdelay.const import (
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
     CONF_PERSONS,
-    CONF_SUMMER_MIN_TEMP,
+    CONF_SUMMER_DAY_MIN_TEMP,
     CONF_SUMMER_NIGHT_MAX_TEMP,
     CONF_SUMMER_NIGHT_MIN_TEMP,
     CONF_SUMMER_NIGHT_TEMP_SENSOR,
-    CONF_WINTER_MAX_TEMP,
+    CONF_WINTER_DAY_MAX_TEMP,
     CONF_WINTER_NIGHT_MAX_TEMP,
     CONF_WINTER_NIGHT_MIN_TEMP,
     CONF_WINTER_NIGHT_TEMP_SENSOR,
@@ -25,8 +27,8 @@ from custom_components.offdelay.const import (
 )
 
 CLIMATE_INPUT = {
-    CONF_WINTER_MAX_TEMP: 15.0,
-    CONF_SUMMER_MIN_TEMP: 20.0,
+    CONF_WINTER_DAY_MAX_TEMP: 15.0,
+    CONF_SUMMER_DAY_MIN_TEMP: 20.0,
     CONF_CLIMATE_DAY_START_HOUR: 8,
     CONF_CLIMATE_NIGHT_START_HOUR: 17,
     CONF_SUMMER_NIGHT_TEMP_SENSOR: "sensor.summer_night_temp",
@@ -46,6 +48,8 @@ PRESENCE_INPUT = {
 
 ENERGY_INPUT = {
     CONF_CLIMATES_BOOST: ["climate.heatpump"],
+    CONF_BOOST_SUMMER_TEMP: 17.0,
+    CONF_BOOST_WINTER_TEMP: 24.0,
 }
 
 
@@ -83,11 +87,11 @@ async def test_setup_happy_path_climate_presence_energy(hass: HomeAssistant) -> 
     ("payload", "expected_error"),
     [
         (
-            {**CLIMATE_INPUT, CONF_WINTER_MAX_TEMP: 25.0},
+            {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 25.0},
             "winter_summer_temp_conflict",
         ),
         (
-            {**CLIMATE_INPUT, CONF_WINTER_MAX_TEMP: 19.95},
+            {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 19.95},
             "winter_summer_temp_too_close",
         ),
         (
@@ -143,7 +147,7 @@ async def test_reconfigure_climate_only_updates_climate_keys(
     )
     assert result["step_id"] == "reconfigure_climate"
 
-    new_climate = {**CLIMATE_INPUT, CONF_WINTER_MAX_TEMP: 16.5}
+    new_climate = {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 16.5}
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], new_climate
     )
@@ -166,7 +170,7 @@ async def test_reconfigure_climate_validation_blocks_advance(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"next_step_id": "reconfigure_climate"}
     )
-    bad = {**CLIMATE_INPUT, CONF_WINTER_MAX_TEMP: 25.0}
+    bad = {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 25.0}
     result = await hass.config_entries.flow.async_configure(result["flow_id"], bad)
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "reconfigure_climate"
@@ -212,7 +216,11 @@ async def test_reconfigure_energy_only_updates_energy_keys(
     )
     assert result["step_id"] == "reconfigure_energy"
 
-    new_energy = {CONF_CLIMATES_BOOST: ["climate.new_boost"]}
+    new_energy = {
+        CONF_CLIMATES_BOOST: ["climate.new_boost"],
+        CONF_BOOST_SUMMER_TEMP: 17.0,
+        CONF_BOOST_WINTER_TEMP: 24.0,
+    }
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], new_energy
     )

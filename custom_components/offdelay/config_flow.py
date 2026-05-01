@@ -10,6 +10,8 @@ from homeassistant.helpers import selector
 import voluptuous as vol
 
 from .const import (
+    CONF_BOOST_SUMMER_TEMP,
+    CONF_BOOST_WINTER_TEMP,
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
     CONF_CLIMATES_BOOST,
@@ -17,11 +19,11 @@ from .const import (
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
     CONF_PERSONS,
-    CONF_SUMMER_MIN_TEMP,
+    CONF_SUMMER_DAY_MIN_TEMP,
     CONF_SUMMER_NIGHT_MAX_TEMP,
     CONF_SUMMER_NIGHT_MIN_TEMP,
     CONF_SUMMER_NIGHT_TEMP_SENSOR,
-    CONF_WINTER_MAX_TEMP,
+    CONF_WINTER_DAY_MAX_TEMP,
     CONF_WINTER_NIGHT_MAX_TEMP,
     CONF_WINTER_NIGHT_MIN_TEMP,
     CONF_WINTER_NIGHT_TEMP_SENSOR,
@@ -213,8 +215,8 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _validate(self, user_input: dict, errors: dict) -> None:
         """Validate Climate step user input."""
-        winter = user_input[CONF_WINTER_MAX_TEMP]
-        summer = user_input[CONF_SUMMER_MIN_TEMP]
+        winter = user_input[CONF_WINTER_DAY_MAX_TEMP]
+        summer = user_input[CONF_SUMMER_DAY_MIN_TEMP]
 
         if winter >= summer:
             errors["base"] = "winter_summer_temp_conflict"
@@ -237,26 +239,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return vol.Schema(
             {
                 vol.Required(
-                    CONF_WINTER_MAX_TEMP,
-                    default=defaults.get(CONF_WINTER_MAX_TEMP, 20.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode="box",
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        step=0.1,
-                    )
-                ),
-                vol.Required(
-                    CONF_SUMMER_MIN_TEMP,
-                    default=defaults.get(CONF_SUMMER_MIN_TEMP, 21.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode="box",
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        step=0.1,
-                    )
-                ),
-                vol.Required(
                     CONF_CLIMATE_DAY_START_HOUR,
                     default=defaults.get(CONF_CLIMATE_DAY_START_HOUR, 8),
                 ): selector.NumberSelector(
@@ -265,6 +247,26 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         min=0,
                         max=23,
                         step=1,
+                    )
+                ),
+                vol.Required(
+                    CONF_WINTER_DAY_MAX_TEMP,
+                    default=defaults.get(CONF_WINTER_DAY_MAX_TEMP, 18.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Required(
+                    CONF_SUMMER_DAY_MIN_TEMP,
+                    default=defaults.get(CONF_SUMMER_DAY_MIN_TEMP, 24.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
                     )
                 ),
                 vol.Required(
@@ -289,7 +291,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_SUMMER_NIGHT_MAX_TEMP,
-                    default=defaults.get(CONF_SUMMER_NIGHT_MAX_TEMP, 20.0),
+                    default=defaults.get(CONF_SUMMER_NIGHT_MAX_TEMP, 25.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         mode="box",
@@ -299,7 +301,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_SUMMER_NIGHT_MIN_TEMP,
-                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 20.0),
+                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 16.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         mode="box",
@@ -318,7 +320,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_WINTER_NIGHT_MAX_TEMP,
-                    default=defaults.get(CONF_WINTER_NIGHT_MAX_TEMP, 20.0),
+                    default=defaults.get(CONF_WINTER_NIGHT_MAX_TEMP, 22.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         mode="box",
@@ -328,7 +330,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_WINTER_NIGHT_MIN_TEMP,
-                    default=defaults.get(CONF_WINTER_NIGHT_MIN_TEMP, 20.0),
+                    default=defaults.get(CONF_WINTER_NIGHT_MIN_TEMP, 19.5),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         mode="box",
@@ -350,7 +352,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_OCCUPANCY_SENSORS, []),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain=["binary_sensor", "sensor"],
+                        domain="binary_sensor",
                         multiple=True,
                     )
                 ),
@@ -399,6 +401,30 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.EntitySelectorConfig(
                         domain="climate",
                         multiple=True,
+                    )
+                ),
+                vol.Required(
+                    CONF_BOOST_SUMMER_TEMP,
+                    default=defaults.get(CONF_BOOST_SUMMER_TEMP, 17.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        min=0,
+                        max=40,
+                        step=0.1,
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                    )
+                ),
+                vol.Required(
+                    CONF_BOOST_WINTER_TEMP,
+                    default=defaults.get(CONF_BOOST_WINTER_TEMP, 24.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode="box",
+                        min=0,
+                        max=40,
+                        step=0.1,
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
                     )
                 ),
             }

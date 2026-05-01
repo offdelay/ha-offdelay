@@ -13,7 +13,14 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .const import ATTRIBUTION, CONF_CLIMATES_BOOST, DATA_CLIMATE_MODE, DOMAIN
+from .const import (
+    ATTRIBUTION,
+    CONF_BOOST_SUMMER_TEMP,
+    CONF_BOOST_WINTER_TEMP,
+    CONF_CLIMATES_BOOST,
+    DATA_CLIMATE_MODE,
+    DOMAIN,
+)
 from .entity import OffdelayEntity
 
 if TYPE_CHECKING:
@@ -48,13 +55,25 @@ ENTITY_DESCRIPTIONS = (
 ZONE_HOME_ENTITY = "zone.home"
 
 
+def _get_climate_friendly_name(hass: HomeAssistant, climate_entity_id: str) -> str:
+    """Get friendly name for a climate entity."""
+    state = hass.states.get(climate_entity_id)
+    if state:
+        friendly_name = state.attributes.get("friendly_name")
+        if friendly_name:
+            return friendly_name
+
+    climate_name = climate_entity_id.rsplit(".", maxsplit=1)[-1]
+    return climate_name.replace("_", " ").title()
+
+
 # ------------------------------------------------------------------
 # Setup
 # ------------------------------------------------------------------
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001
+    hass: HomeAssistant,
     entry: OffdelayConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -74,14 +93,19 @@ async def async_setup_entry(
 
     # Boost binary sensors (summer / winter per climate)
     boost_climates = entry.data.get(CONF_CLIMATES_BOOST, [])
+    boost_summer_temp = entry.data.get(CONF_BOOST_SUMMER_TEMP, 17.0)
+    boost_winter_temp = entry.data.get(CONF_BOOST_WINTER_TEMP, 24.0)
     for climate_id in boost_climates:
+        friendly_name = _get_climate_friendly_name(hass, climate_id)
         climate_name = climate_id.split(".")[-1]
 
-        for boost_type, temp_label in (("summer", "17"), ("winter", "24")):
+        for boost_type, temp_label in (
+            ("summer", str(boost_summer_temp)),
+            ("winter", str(boost_winter_temp)),
+        ):
             description = BinarySensorEntityDescription(
                 key=f"boost_{climate_name}_{boost_type}",
-                translation_key=f"boost_{climate_name}_{boost_type}",
-                name=f"Offdelay boost {temp_label}",
+                name=f"{friendly_name} Boost {temp_label}",
                 icon="mdi:snowflake" if boost_type == "summer" else "mdi:fire",
             )
 
@@ -141,6 +165,8 @@ class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
         super().__init__(coordinator, entity_description)
         self._climate_entity_id = climate_entity_id
         self._boost_type = boost_type
+        climate_object_id = climate_entity_id.rsplit(".", maxsplit=1)[-1]
+        self.entity_id = f"binary_sensor.{climate_object_id}_boost_{boost_type}"
 
     @property
     def is_on(self) -> bool:
