@@ -70,7 +70,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         current_hour = dt_util.now().hour
         return day_start <= current_hour < night_start
 
-    def _weather_mode_logic(
+    def _climate_mode_day_logic(
         self, current_data: dict[str, Any], current_mode: str
     ) -> dict[str, Any]:
         """Determine climate mode from weather forecast.
@@ -95,7 +95,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             mode = "none"
         return {DATA_CLIMATE_MODE: mode}
 
-    def _climate_mode_logic(self, current_mode: str) -> dict[str, Any]:
+    def _climate_mode_night_logic(self, current_mode: str) -> dict[str, Any]:
         """Determine climate mode from night temperature sensors."""
         if current_mode == CLIMATE_MODE_SUMMER:
             sensor_id = self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR)
@@ -173,7 +173,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _update_climate_mode(self, current_data: dict[str, Any]) -> dict[str, Any]:
         """Determine climate mode based on time windows and data."""
         current_mode = self.data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
-        weather_result = self._weather_mode_logic(current_data, current_mode)
+        weather_result = self._climate_mode_day_logic(current_data, current_mode)
 
         has_night_sensors = bool(
             self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR)
@@ -183,11 +183,12 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return weather_result
 
         weather_mode = weather_result[DATA_CLIMATE_MODE]
-        return self._climate_mode_logic(weather_mode)
+        return self._climate_mode_night_logic(weather_mode)
 
     def set_boost_active(self, climate_entity_id: str, active: bool) -> None:  # noqa: FBT001
         """Set boost state for a climate entity."""
         self.boost_state[climate_entity_id] = active
+        self.data["boost_state"] = self.boost_state.copy()
         self.async_set_updated_data(self.data)
 
     async def _update_weather_data(self) -> dict[str, Any]:

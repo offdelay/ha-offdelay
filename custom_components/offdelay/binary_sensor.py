@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
 )
 from .entity import OffdelayEntity
+from .helpers import get_climate_friendly_name
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -55,18 +56,6 @@ ENTITY_DESCRIPTIONS = (
 ZONE_HOME_ENTITY = "zone.home"
 
 
-def _get_climate_friendly_name(hass: HomeAssistant, climate_entity_id: str) -> str:
-    """Get friendly name for a climate entity."""
-    state = hass.states.get(climate_entity_id)
-    if state:
-        friendly_name = state.attributes.get("friendly_name")
-        if friendly_name:
-            return friendly_name
-
-    climate_name = climate_entity_id.rsplit(".", maxsplit=1)[-1]
-    return climate_name.replace("_", " ").title()
-
-
 # ------------------------------------------------------------------
 # Setup
 # ------------------------------------------------------------------
@@ -84,7 +73,7 @@ async def async_setup_entry(
 
     # Climate mode sensors
     entities.extend(
-        OffdelayBinarySensor(
+        OffdelayClimateModeBinarySensor(
             coordinator=coordinator,
             entity_description=description,
         )
@@ -96,7 +85,7 @@ async def async_setup_entry(
     boost_summer_temp = entry.data.get(CONF_BOOST_SUMMER_TEMP, 17.0)
     boost_winter_temp = entry.data.get(CONF_BOOST_WINTER_TEMP, 24.0)
     for climate_id in boost_climates:
-        friendly_name = _get_climate_friendly_name(hass, climate_id)
+        friendly_name = get_climate_friendly_name(hass, climate_id)
         climate_name = climate_id.split(".")[-1]
 
         for boost_type, temp_label in (
@@ -129,7 +118,7 @@ async def async_setup_entry(
 # ------------------------------------------------------------------
 
 
-class OffdelayBinarySensor(OffdelayEntity, BinarySensorEntity):
+class OffdelayClimateModeBinarySensor(OffdelayEntity, BinarySensorEntity):
     """Binary sensor representing climate mode state."""
 
     @property
@@ -176,12 +165,12 @@ class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
         if not switch_on:
             return False
 
-        winter_mode = self.coordinator.data.get(DATA_CLIMATE_MODE) == "winter"
+        summer_mode = self.coordinator.data.get(DATA_CLIMATE_MODE) == "summer"
 
-        if self._boost_type == "winter":
-            return winter_mode
+        if self._boost_type == "summer":
+            return summer_mode
 
-        return not winter_mode
+        return not summer_mode
 
 
 # ------------------------------------------------------------------

@@ -11,6 +11,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.const import UnitOfTemperature
+from homeassistant.helpers.entity import EntityCategory
 
 from .const import CONF_SUMMER_NIGHT_TEMP_SENSOR, CONF_WINTER_NIGHT_TEMP_SENSOR
 from .entity import OffdelayEntity
@@ -44,6 +45,7 @@ NIGHT_TEMP_SENSOR_DESCRIPTIONS = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         icon="mdi:weather-sunny",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="winter_night_temp_reading",
@@ -51,6 +53,7 @@ NIGHT_TEMP_SENSOR_DESCRIPTIONS = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         icon="mdi:snowflake",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
 
@@ -100,7 +103,7 @@ class OffdelaySensor(OffdelayEntity, SensorEntity):
         return self.coordinator.data.get(self.entity_description.key)
 
 
-class OffdelayNightTempSensor(OffdelayEntity, SensorEntity):
+class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
     """Sensor that mirrors a configured night temperature sensor."""
 
     def __init__(
@@ -117,14 +120,20 @@ class OffdelayNightTempSensor(OffdelayEntity, SensorEntity):
     def native_value(self) -> float | None:
         """Return the current temperature from the source sensor."""
         if not self._source_entity_id:
-            return None
+            return self._attr_native_value
         state = self.coordinator.hass.states.get(self._source_entity_id)
         if state is None or state.state in {"unavailable", "unknown"}:
-            return None
+            return self._attr_native_value
         try:
             return float(state.state)
         except (ValueError, TypeError):
-            return None
+            return self._attr_native_value
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last known state before registering coordinator listener."""
+        if last_sensor_data := await self.async_get_last_sensor_data():
+            self._attr_native_value = last_sensor_data.native_value
+        await super().async_added_to_hass()
 
 
 class OffdelayWeatherSensor(OffdelayEntity, RestoreSensor):
