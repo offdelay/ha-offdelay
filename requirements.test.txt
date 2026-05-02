@@ -1,6 +1,6 @@
 # Test runner + plugins (only if you use them explicitly)
 pytest-homeassistant-custom-component==0.13.316
-pytest>=8.0
+pytest>=9.0.3
 pytest-cov>=6.0
 
 # Dev tooling
