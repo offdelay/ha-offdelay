@@ -17,8 +17,9 @@ dist/
 # -----------------------------
 # Home Assistant configuration
 # -----------------------------
-# Ignore all config
+# Ignore all config, except the configuration.yaml
 config/*
+!config/configuration.yaml
 
 # Home Assistant database and logs
 *.db
@@ -50,5 +51,6 @@ uv.lock
 *.temp
 .DS_Store
 Thumbs.db
+.devcontainer-lock.json
 
 .sisyphus/

@@ -12,7 +12,7 @@
         {
             "label": "Run Home Assistant (Develop)",
             "type": "shell",
-            "command": "source ${workspaceFolder}/.venv/bin/activate && ${workspaceFolder}/scripts/develop",
+            "command": "scripts/develop",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

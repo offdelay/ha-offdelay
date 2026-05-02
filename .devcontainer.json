@@ -3,17 +3,18 @@
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
     "postCreateCommand": "scripts/setup",
     "postStartCommand": "scripts/motd",
-    "containerEnv": {
-        "PYTHONASYNCIODEBUG": "1",
-        "PYTHONUNBUFFERED": "1",
-        "PYTHONDONTWRITEBYTECODE": "1"
-    },
-    "runArgs": [
-        "-p",
-        "8123:8123"
+    "forwardPorts": [
+        8123
     ],
-
-    "forwardPorts": [],
+    "portsAttributes": {
+        "8123": {
+            "label": "Home Assistant",
+            "onAutoForward": "notify"
+        }
+    },
+    "containerEnv": {
+        "PIP_BREAK_SYSTEM_PACKAGES": "1"
+    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -32,34 +33,17 @@
                 "files.trimTrailingWhitespace": true,
                 "python.analysis.typeCheckingMode": "basic",
                 "python.analysis.autoImportCompletions": true,
-                "python.analysis.diagnosticMode": "workspace",
-                "python.analysis.diagnosticSeverityOverrides": {
-                    "reportUnusedImport": "none",
-                    "reportUnusedVariable": "none",
-                    "reportUnusedCoroutine": "none",
-                    "reportMissingTypeStubs": "none"
-                },
-                "python.analysis.include": [
-                    "custom_components/offdelay"
-                ],
-                "python.analysis.exclude": [
-                    "**/.venv/**",
-                    "**/venv/**",
-                    "**/__pycache__/**",
-                    "**/.git/**",
-                    "**/.github/**",
-                    "**/docs/**",
-                    "**/node_modules/**"
-                ],
-                "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-                "python.analysis.extraPaths": [
-                    "${workspaceFolder}/custom_components"
-                ],
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff"
                 }
             }
         }
     },
-    "remoteUser": "vscode"
+    "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers-extra/features/apt-packages:1": {
+            "packages": "ffmpeg,libturbojpeg0,libpcap-dev"
+        }
+    }
 }

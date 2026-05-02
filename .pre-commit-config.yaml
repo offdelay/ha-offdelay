@@ -4,21 +4,15 @@
 # This configuration uses local hooks that rely on packages
 # defined in requirements.txt, avoiding separate pre-commit environments.
 repos:
-  - repo: local
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
     hooks:
-      # Run the Ruff linter with auto-fix
       - id: ruff
-        name: ruff
-        entry: bash -c 'source $HOME/.venv/bin/activate && ruff check --fix --exit-non-zero-on-fix "$@"' --
-        language: system
-        types: [python]
-        require_serial: true
-        exclude: scripts/develop_debug\.py
-
-      # Run the Ruff formatter
       - id: ruff-format
-        name: ruff format
-        entry: bash -c 'source $HOME/.venv/bin/activate && ruff format "$@"' --
-        language: system
-        types: [python]
-        require_serial: true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: trailing-whitespace
+      - id: end-of-file-fixer

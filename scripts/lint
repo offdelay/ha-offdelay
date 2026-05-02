@@ -1,17 +1,21 @@
 #!/bin/sh
 
-# script/lint: Run linting tools and apply formatting
+# script/lint: Run all linters and formatters defined in .pre-commit-config.yaml
 
 set -e
 
 cd "$(dirname "$0")/.."
 
-echo "==> Running linting tools..."
+# Ensure pre-commit is installed (safety check)
+if ! command -v pre-commit >/dev/null 2>&1; then
+    echo "==> pre-commit not found, installing..."
+    uv pip install pre-commit
+fi
 
-echo "==> Running Ruff format..."
-uv run ruff format .
+echo "==> Running all linting hooks..."
 
-echo "==> Running Ruff check..."
-uv run ruff check . --fix
+# --all-files: Checks everything, not just staged changes
+# --show-diff-on-failure: Helpful for CI logs
+pre-commit run --all-files --show-diff-on-failure
 
 echo "==> Linting completed!"
