@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import shutil
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 
 from .const import LOGGER as _LOGGER
+
+if TYPE_CHECKING:
+    pass
 
 
 def copy_blueprints(hass: HomeAssistant, domain: str) -> None:
@@ -34,13 +38,22 @@ def copy_blueprints(hass: HomeAssistant, domain: str) -> None:
         destination_dir = ha_blueprint_dir / blueprint_type / domain
 
         # Create the destination directory if it doesn't exist.
-        destination_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            destination_dir.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError) as err:
+            _LOGGER.warning(
+                "Cannot create blueprint directory %s: %s", destination_dir, err
+            )
+            continue
 
         # Copy the blueprint files.
         for blueprint in source_dir.glob("*.yaml"):
             destination_file = destination_dir / blueprint.name
-            # Copy the file, overwriting if it exists.
-            shutil.copy2(blueprint, destination_file)
+            try:
+                shutil.copy2(blueprint, destination_file)
+            except (PermissionError, OSError) as err:
+                _LOGGER.warning("Cannot copy blueprint %s: %s", destination_file, err)
+                continue
             _LOGGER.debug(
                 "Copied blueprint: %s/%s/%s",
                 blueprint_type,
@@ -72,5 +85,10 @@ def remove_blueprints(hass: HomeAssistant, domain: str) -> None:
         # Check if the destination directory exists.
         if destination_dir.is_dir():
             # Remove the directory and all its contents.
-            shutil.rmtree(destination_dir)
-            _LOGGER.debug("Removed blueprints directory: %s", destination_dir)
+            try:
+                shutil.rmtree(destination_dir)
+                _LOGGER.debug("Removed blueprints directory: %s", destination_dir)
+            except (PermissionError, OSError) as err:
+                _LOGGER.warning(
+                    "Cannot remove blueprint directory %s: %s", destination_dir, err
+                )

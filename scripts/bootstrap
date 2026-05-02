@@ -1,4 +1,6 @@
 #!/bin/sh
+# script/bootstrap: Bootstrap development environment (install dependencies and pre-commit hooks)
+
 set -e
 
 cd "$(dirname "$0")/.."

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# script/freeze: Freeze pip requirements to requirements.test.txt
 
 set -e
 

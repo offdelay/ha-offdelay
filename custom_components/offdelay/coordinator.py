@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -228,26 +229,31 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             LOGGER.warning("No hourly forecast data available")
             return {}
 
-        today = dt_util.now().date()
-        today_temps: list[float] = []
+        now = dt_util.now()
+        in_24_hours = now + timedelta(hours=24)
+
+        window_temps: list[float] = []
 
         for entry in hourly_forecast:
             entry_dt_str = entry.get("datetime")
             if entry_dt_str is None:
                 continue
+
             entry_dt = dt_util.parse_datetime(entry_dt_str)
             if entry_dt is None:
                 continue
-            if entry_dt.date() == today:
+
+            # Check if the forecast entry is within the next 24 hours
+            if now <= entry_dt <= in_24_hours:
                 temp = entry.get("temperature")
                 if isinstance(temp, (int, float)):
-                    today_temps.append(float(temp))
+                    window_temps.append(float(temp))
 
-        if not today_temps:
-            LOGGER.warning("No hourly temperature data for today")
+        if not window_temps:
+            LOGGER.warning("No hourly temperature data for the next 24 hours")
             return {}
 
         return {
-            "weather_max_temp_today": max(today_temps),
-            "weather_min_temp_today": min(today_temps),
+            "weather_max_temp_today": max(window_temps),
+            "weather_min_temp_today": min(window_temps),
         }

@@ -222,10 +222,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "winter_summer_temp_conflict"
             return
 
-        if (summer - winter) <= 0.1:
-            errors["base"] = "winter_summer_temp_too_close"
-            return
-
         day_hour = int(user_input[CONF_CLIMATE_DAY_START_HOUR])
         night_hour = int(user_input[CONF_CLIMATE_NIGHT_START_HOUR])
 
@@ -243,20 +239,10 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_CLIMATE_DAY_START_HOUR, 8),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         min=0,
                         max=23,
                         step=1,
-                    )
-                ),
-                vol.Required(
-                    CONF_WINTER_DAY_MAX_TEMP,
-                    default=defaults.get(CONF_WINTER_DAY_MAX_TEMP, 18.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode="box",
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        step=0.1,
                     )
                 ),
                 vol.Required(
@@ -264,7 +250,17 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_SUMMER_DAY_MIN_TEMP, 24.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Required(
+                    CONF_WINTER_DAY_MAX_TEMP,
+                    default=defaults.get(CONF_WINTER_DAY_MAX_TEMP, 18.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement=UnitOfTemperature.CELSIUS,
                         step=0.1,
                     )
@@ -274,7 +270,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_CLIMATE_NIGHT_START_HOUR, 17),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         min=0,
                         max=23,
                         step=1,
@@ -294,17 +290,17 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_SUMMER_NIGHT_MAX_TEMP, 25.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement=UnitOfTemperature.CELSIUS,
                         step=0.1,
                     )
                 ),
                 vol.Required(
                     CONF_SUMMER_NIGHT_MIN_TEMP,
-                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 16.0),
+                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 18.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement=UnitOfTemperature.CELSIUS,
                         step=0.1,
                     )
@@ -323,7 +319,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_WINTER_NIGHT_MAX_TEMP, 22.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement=UnitOfTemperature.CELSIUS,
                         step=0.1,
                     )
@@ -333,7 +329,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_WINTER_NIGHT_MIN_TEMP, 19.5),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement=UnitOfTemperature.CELSIUS,
                         step=0.1,
                     )
@@ -361,7 +357,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_GUEST_TURN_ON_DELAY, 5),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         min=0,
                         step=1,
                     )
@@ -371,7 +367,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_GUEST_TURN_OFF_DELAY, 15),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         min=0,
                         step=1,
                     )
@@ -408,7 +404,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_BOOST_SUMMER_TEMP, 17.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         min=0,
                         max=40,
                         step=0.1,
@@ -420,7 +416,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_BOOST_WINTER_TEMP, 24.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        mode="box",
+                        mode=selector.NumberSelectorMode.BOX,
                         min=0,
                         max=40,
                         step=0.1,

@@ -48,9 +48,10 @@ coverage report
 
 ## NOTES
 - This integration relies on the `Meteorologisk institutt (Met.no)` integration for weather data.
-- Two zones, `zone.home` and `zone.near_home`, must be created in Home Assistant.
+- The `zone.home` zone must be created in Home Assistant.
 
 ## POST-CHANGE HOOKS
 After every file modification, the following skills must be executed in order:
 - `lint`
 - `unittest`
+- `readme-review`

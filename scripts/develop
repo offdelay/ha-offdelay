@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# script/develop: Start Home Assistant in development mode with live reload
 
 set -e
 

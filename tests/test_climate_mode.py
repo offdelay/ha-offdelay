@@ -52,30 +52,7 @@ async def test_config_flow_winter_summer_temp_conflict(hass: HomeAssistant):
             "winter_night_min_temp": 20.0,
         },
     )
-    assert result["errors"]["base"] == "winter_summer_temp_conflict"
-
-
-async def test_config_flow_winter_summer_temp_too_close(hass: HomeAssistant):
-    """Test that difference <= 0.1 shows error."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        user_input={
-            "winter_day_max_temp": 19.95,
-            "summer_day_min_temp": 20.0,
-            "climate_day_start_hour": 8,
-            "climate_night_start_hour": 17,
-            "summer_night_temp_sensor": "sensor.summer_night_temp",
-            "summer_night_max_temp": 20.0,
-            "summer_night_min_temp": 20.0,
-            "winter_night_temp_sensor": "sensor.winter_night_temp",
-            "winter_night_max_temp": 20.0,
-            "winter_night_min_temp": 20.0,
-        },
-    )
-    assert result["errors"]["base"] == "winter_summer_temp_too_close"
+    assert result["errors"]["base"] == "winter_summer_temp_conflict"  # type: ignore
 
 
 async def test_config_flow_valid_climate_config(hass: HomeAssistant):
@@ -102,7 +79,7 @@ async def test_config_flow_valid_climate_config(hass: HomeAssistant):
         result["flow_id"],
         user_input=climate_input,
     )
-    assert result["step_id"] == "presence"
+    assert result.get("step_id") == "presence"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
@@ -110,12 +87,12 @@ async def test_config_flow_valid_climate_config(hass: HomeAssistant):
             "guest_turn_off_delay": 15,
         },
     )
-    assert result["step_id"] == "energy"
+    assert result.get("step_id") == "energy"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={},
     )
-    assert result["type"] == "create_entry"
+    assert result.get("type") == "create_entry"
 
 
 async def test_config_flow_day_night_hour_conflict(hass: HomeAssistant):
@@ -138,7 +115,7 @@ async def test_config_flow_day_night_hour_conflict(hass: HomeAssistant):
             "winter_night_min_temp": 20.0,
         },
     )
-    assert result["errors"]["base"] == "day_night_hour_conflict"
+    assert result["errors"]["base"] == "day_night_hour_conflict"  # type: ignore
 
 
 # B. Coordinator Climate Mode Tests — Time Window Logic

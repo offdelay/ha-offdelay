@@ -10,10 +10,12 @@ from datetime import timedelta
 
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_loaded_integration
 
 from .blueprint import async_setup_blueprints, async_unload_blueprints
 from .const import (
+    CONF_CLIMATES_BOOST,
     CONF_PERSONS,
     DOMAIN,
     LOGGER,
@@ -89,6 +91,8 @@ async def async_setup_entry(
     # Perform first refresh
     await coordinator.async_config_entry_first_refresh()
 
+    _cleanup_stale_boost_entities(hass, entry)
+
     # Set up blueprints
     await async_setup_blueprints(hass, DOMAIN)
 
@@ -145,6 +149,25 @@ def _get_person_device_trackers(
             unique_trackers.append(dt)
 
     return unique_trackers
+
+
+def _cleanup_stale_boost_entities(
+    hass: HomeAssistant,
+    entry: OffdelayConfigEntry,
+) -> None:
+    """Remove boost entities for climates no longer in the config."""
+    registry = er.async_get(hass)
+    boost_climates: list[str] = entry.data.get(CONF_CLIMATES_BOOST, [])
+    active_prefixes = {
+        f"{entry.entry_id}_boost_{cid.split('.')[-1]}" for cid in boost_climates
+    }
+
+    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        uid = entity_entry.unique_id
+        if not uid.startswith(f"{entry.entry_id}_boost_"):
+            continue
+        if not any(uid.startswith(prefix) for prefix in active_prefixes):
+            registry.async_remove(entity_entry.entity_id)
 
 
 async def async_unload_entry(

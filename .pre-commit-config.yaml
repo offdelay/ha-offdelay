@@ -14,5 +14,6 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-yaml
+        exclude: ^custom_components/offdelay/blueprints/
       - id: trailing-whitespace
       - id: end-of-file-fixer

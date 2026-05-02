@@ -25,13 +25,13 @@ blueprint:
       description: The entity from HA
       selector:
         entity:
-          filter: 
+          filter:
             - integration: mqtt
               domain: event
-          multiple: true 
+          multiple: true
     dim_speed:
       name: Dimming Speed
-      description: The speed of the dimming effect. 
+      description: The speed of the dimming effect.
       default: 50
       selector:
         number:
@@ -125,7 +125,7 @@ action:
       dimspeed_n: '{{ dimspeed_p | int * -1 }}'
   - choose:
     - conditions: '{{ keypress == ''press_1'' }}'
-      sequence: 
+      sequence:
       - delay:
           seconds: 1
       - action: mqtt.publish
@@ -134,7 +134,7 @@ action:
           payload: "{\"brightness_move_onoff\": {{ dimspeed_p }} }"
 
     - conditions: '{{ keypress == ''press_2'' }}'
-      sequence: 
+      sequence:
       - delay:
           seconds: 1
       - action: mqtt.publish
@@ -142,7 +142,7 @@ action:
           topic: '{{ base_topic ~ ''/'' ~ controller_left ~ ''/set''}}'
           payload: "{\"brightness_move_onoff\": {{ dimspeed_n }} }"
     - conditions: '{{ keypress == ''press_3'' }}'
-      sequence: 
+      sequence:
       - delay:
           seconds: 1
       - action: mqtt.publish
@@ -151,7 +151,7 @@ action:
           payload: "{\"brightness_move_onoff\": {{ dimspeed_p }} }"
 
     - conditions: '{{ keypress == ''press_4'' }}'
-      sequence: 
+      sequence:
       - delay:
           seconds: 1
       - action: mqtt.publish

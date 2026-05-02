@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# script/unfreeze: Unfreeze pip requirements by removing version pins
 
 set -e
 

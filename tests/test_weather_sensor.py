@@ -31,7 +31,7 @@ async def test_update_weather_data_hourly_forecast(hass: HomeAssistant):
     hourly_forecast = {
         "weather.home": {
             "forecast": [
-                {"datetime": "2026-05-01T10:00:00+00:00", "temperature": 15.0},
+                {"datetime": "2026-05-01T12:00:00+00:00", "temperature": 15.0},
                 {"datetime": "2026-05-01T14:00:00+00:00", "temperature": 20.0},
                 {"datetime": "2026-05-01T18:00:00+00:00", "temperature": 18.0},
             ]
@@ -89,8 +89,8 @@ async def test_update_weather_data_no_today_entries(hass: HomeAssistant):
     hourly_forecast = {
         "weather.home": {
             "forecast": [
-                {"datetime": "2026-05-02T10:00:00+00:00", "temperature": 15.0},
-                {"datetime": "2026-05-02T14:00:00+00:00", "temperature": 20.0},
+                {"datetime": "2026-05-02T14:00:00+00:00", "temperature": 15.0},
+                {"datetime": "2026-05-02T18:00:00+00:00", "temperature": 20.0},
             ]
         }
     }
@@ -119,10 +119,10 @@ async def test_update_weather_data_multiple_days(hass: HomeAssistant):
     hourly_forecast = {
         "weather.home": {
             "forecast": [
-                {"datetime": "2026-05-01T10:00:00+00:00", "temperature": 15.0},
                 {"datetime": "2026-05-01T14:00:00+00:00", "temperature": 20.0},
-                {"datetime": "2026-05-02T10:00:00+00:00", "temperature": 25.0},
-                {"datetime": "2026-05-02T14:00:00+00:00", "temperature": 10.0},
+                {"datetime": "2026-05-01T18:00:00+00:00", "temperature": 15.0},
+                {"datetime": "2026-05-02T14:00:00+00:00", "temperature": 25.0},
+                {"datetime": "2026-05-02T18:00:00+00:00", "temperature": 10.0},
             ]
         }
     }

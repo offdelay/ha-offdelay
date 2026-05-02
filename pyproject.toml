@@ -132,9 +132,11 @@ split-on-trailing-comma = false
 ".github/*.py" = [
   "ANN",
   "INP001",
+  "D103",
 ]
 
 "tests/**" = [
-  "S101",     # asserts are fine in tests
-  "PLR2004",  # magic values in tests are fine
+    "S101",     # asserts are fine in tests
+    "PLR2004",  # magic values in tests are fine
+    "D103",
 ]

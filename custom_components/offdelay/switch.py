@@ -132,6 +132,7 @@ class GuestModeSwitch(SwitchEntity):
     def __init__(
         self, config_entry: OffdelayConfigEntry, config: dict[str, Any]
     ) -> None:
+        """Initialize guest mode switch with config entry and settings."""
         self._attr_unique_id = f"{config_entry.entry_id}_guest_mode"
         self._attr_device_info = _device_info(config_entry.entry_id)
 
@@ -147,21 +148,25 @@ class GuestModeSwitch(SwitchEntity):
 
     @property
     def is_on(self) -> bool:
+        """Return True when guest mode is active."""
         return self._is_on
 
     async def async_turn_on(self, **_: object) -> None:
+        """Turn guest mode on and cancel all timers."""
         self._cancel_all_timers()
         self._manual_override = True
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **_: object) -> None:
+        """Turn guest mode off and cancel all timers."""
         self._cancel_all_timers()
         self._manual_override = True
         self._is_on = False
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
+        """Subscribe to zone.home and occupancy sensor changes."""
         self._listeners.append(
             async_track_state_change_event(
                 self.hass, ZONE_HOME_ENTITY, self._async_zone_home_changed
@@ -175,6 +180,7 @@ class GuestModeSwitch(SwitchEntity):
             )
 
     async def async_will_remove_from_hass(self) -> None:
+        """Unsubscribe from state changes when entity is removed."""
         self._cancel_all_timers()
         for unsub in self._listeners:
             unsub()
@@ -266,6 +272,7 @@ class VacationModeSwitch(SwitchEntity):
     _attr_icon = "mdi:beach"
 
     def __init__(self, config_entry: OffdelayConfigEntry) -> None:
+        """Initialize vacation mode switch with config entry."""
         self._attr_unique_id = f"{config_entry.entry_id}_vacation_mode"
         self._attr_device_info = _device_info(config_entry.entry_id)
 
@@ -277,9 +284,11 @@ class VacationModeSwitch(SwitchEntity):
 
     @property
     def is_on(self) -> bool:
+        """Return True when vacation mode is active."""
         return self._is_on
 
     async def async_turn_on(self, **_: object) -> None:
+        """Turn vacation mode on and record start time."""
         self._cancel()
         self._manual_override = True
         self._is_on = True
@@ -287,6 +296,7 @@ class VacationModeSwitch(SwitchEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **_: object) -> None:
+        """Turn vacation mode off and clear timers."""
         self._cancel()
         self._manual_override = True
         self._is_on = False
@@ -294,6 +304,7 @@ class VacationModeSwitch(SwitchEntity):
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
+        """Subscribe to zone.home state changes."""
         self._listeners.append(
             async_track_state_change_event(
                 self.hass, ZONE_HOME_ENTITY, self._zone_changed
@@ -301,6 +312,7 @@ class VacationModeSwitch(SwitchEntity):
         )
 
     async def async_will_remove_from_hass(self) -> None:
+        """Unsubscribe from state changes when entity is removed."""
         self._cancel()
         for unsub in self._listeners:
             unsub()
@@ -355,6 +367,7 @@ class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
         entity_description: SwitchEntityDescription,
         climate_entity_id: str,
     ) -> None:
+        """Initialize boost switch for a climate entity."""
         super().__init__(coordinator, entity_description)
         self._climate_entity_id = climate_entity_id
         climate_object_id = climate_entity_id.rsplit(".", maxsplit=1)[-1]
@@ -362,11 +375,14 @@ class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool:
+        """Return True when boost is active for this climate."""
         boost_state = self.coordinator.data.get("boost_state", {})
         return boost_state.get(self._climate_entity_id, False)
 
     async def async_turn_on(self, **_: object) -> None:
+        """Activate boost mode for this climate entity."""
         self.coordinator.set_boost_active(self._climate_entity_id, active=True)
 
     async def async_turn_off(self, **_: object) -> None:
+        """Deactivate boost mode for this climate entity."""
         self.coordinator.set_boost_active(self._climate_entity_id, active=False)

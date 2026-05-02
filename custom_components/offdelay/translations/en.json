@@ -6,15 +6,15 @@
                 "description": "Configure climate thresholds and entities. If you need help with the configuration, see the documentation at {docs_url}.",
                 "data": {
                     "climate_day_start_hour": "Climate Day Logic Start Hour",
-                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
                     "summer_day_min_temp": "Summer Mode Day Min Temperature",
+                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
                     "climate_night_start_hour": "Climate Night Logic Start Hour",
-                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
-                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
-                    "winter_night_min_temp": "Winter Mode Night Min Temperature",
                     "summer_night_temp_sensor": "Summer Night Temperature Sensor",
                     "summer_night_max_temp": "Summer Mode Night Max Temperature",
-                    "summer_night_min_temp": "Summer Mode Night Min Temperature"
+                    "summer_night_min_temp": "Summer Mode Night Min Temperature",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
+                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
+                    "winter_night_min_temp": "Winter Mode Night Min Temperature"
                 }
             },
             "reconfigure": {
@@ -31,15 +31,15 @@
                 "description": "Update climate thresholds and entities.",
                 "data": {
                     "climate_day_start_hour": "Climate Day Logic Start Hour",
-                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
                     "summer_day_min_temp": "Summer Mode Day Min Temperature",
+                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
                     "climate_night_start_hour": "Climate Night Logic Start Hour",
-                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
-                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
-                    "winter_night_min_temp": "Winter Mode Night Min Temperature",
                     "summer_night_temp_sensor": "Summer Night Temperature Sensor",
                     "summer_night_max_temp": "Summer Mode Night Max Temperature",
-                    "summer_night_min_temp": "Summer Mode Night Min Temperature"
+                    "summer_night_min_temp": "Summer Mode Night Min Temperature",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
+                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
+                    "winter_night_min_temp": "Winter Mode Night Min Temperature"
                 }
             },
             "reconfigure_presence": {
@@ -56,7 +56,7 @@
                 "title": "Energy",
                 "description": "Update energy-related entities. Currently manages boost heat pump climates.",
                 "data": {
-                    "climates_boost": "Boost Heatpump Climates",
+                    "climates_boost": "Boost Climates",
                     "boost_summer_temp": "Boost Summer Temperature",
                     "boost_winter_temp": "Boost Winter Temperature"
                 }
@@ -75,7 +75,7 @@
                 "title": "Energy",
                 "description": "Configure energy-related entities. Currently manages boost heat pump climates.",
                 "data": {
-                    "climates_boost": "Boost Heatpump Climates",
+                    "climates_boost": "Boost Climates",
                     "boost_summer_temp": "Boost Summer Temperature",
                     "boost_winter_temp": "Boost Winter Temperature"
                 }
@@ -83,7 +83,6 @@
         },
         "error": {
             "winter_summer_temp_conflict": "Winter max temperature must be lower than summer min temperature.",
-            "winter_summer_temp_too_close": "The difference between winter and summer temperatures must be greater than 0.1\u00b0C.",
             "day_night_hour_conflict": "Day start hour must be less than night start hour."
         },
         "abort": {

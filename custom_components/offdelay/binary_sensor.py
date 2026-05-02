@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import (
@@ -11,7 +12,10 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import (
+    EventStateChangedData,
+    async_track_state_change_event,
+)
 
 from .const import (
     ATTRIBUTION,
@@ -123,6 +127,7 @@ class OffdelayClimateModeBinarySensor(OffdelayEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
+        """Return True when the climate mode matches this sensor's key."""
         key = self.entity_description.key
         mode = self.coordinator.data.get(DATA_CLIMATE_MODE)
 
@@ -151,6 +156,7 @@ class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
         climate_entity_id: str,
         boost_type: str,
     ) -> None:
+        """Initialize a boost binary sensor for a specific climate and season."""
         super().__init__(coordinator, entity_description)
         self._climate_entity_id = climate_entity_id
         self._boost_type = boost_type
@@ -159,6 +165,7 @@ class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
+        """Return True when the boost switch is on and the season matches."""
         boost_state = self.coordinator.data.get("boost_state", {})
         switch_on = boost_state.get(self._climate_entity_id, False)
 
@@ -188,6 +195,7 @@ class OffdelayHomeBinarySensor(BinarySensorEntity):
     _attr_icon = "mdi:home-account"
 
     def __init__(self, config_entry: OffdelayConfigEntry) -> None:
+        """Initialize the home presence binary sensor."""
         self._attr_unique_id = f"{config_entry.entry_id}_is_home"
         self._attr_device_info = DeviceInfo(
             name="Offdelay",
@@ -197,25 +205,28 @@ class OffdelayHomeBinarySensor(BinarySensorEntity):
             entry_type=DeviceEntryType.SERVICE,
         )
         self._is_on = False
-        self._unsub: callback | None = None
+        self._unsub: Callable[[], None] | None = None
 
     @property
     def is_on(self) -> bool:
+        """Return True when at least one person is in zone.home."""
         return self._is_on
 
     async def async_added_to_hass(self) -> None:
+        """Subscribe to zone.home state changes on entity load."""
         self._update_from_zone_state()
         self._unsub = async_track_state_change_event(
             self.hass, ZONE_HOME_ENTITY, self._async_zone_home_changed
         )
 
     async def async_will_remove_from_hass(self) -> None:
+        """Unsubscribe from zone.home state changes on entity removal."""
         if self._unsub is not None:
             self._unsub()
             self._unsub = None
 
     @callback
-    def _async_zone_home_changed(self, event: Event) -> None:  # noqa: ARG002
+    def _async_zone_home_changed(self, event: Event[EventStateChangedData]) -> None:  # noqa: ARG002
         self._update_from_zone_state()
         self.async_write_ha_state()
 

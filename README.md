@@ -11,9 +11,8 @@ This custom integration for Home Assistant provides tools to improve the ease of
 Before installing, please ensure you have the following set up in your Home Assistant instance:
 
 1.  **Meteorologisk institutt (Met.no) Integration**: This integration relies on a weather provider for forecast data. The [Met.no integration](https://www.home-assistant.io/integrations/met/) is the recommended provider. You will need a weather entity named `weather.forecast_home` or `weather.home`.
-2.  **Zones**: You must create two [zones](https://www.home-assistant.io/integrations/zone/):
+2.  **Zones**: You must create the following [zone](https://www.home-assistant.io/integrations/zone/):
     *   `zone.home`: Your primary home location.
-    *   `zone.near_home`: An area around your home to detect when you are close.
 
 ## Installation
 
@@ -31,7 +30,7 @@ Because this is not part of the default HACS repository, you must add it as a cu
 
 ## Configuration
 
-After installation, the integration can be configured through the Home Assistant UI.
+After installation, the integration can be configured through the Home Assistant UI. The setup wizard guides you through climate thresholds, presence settings, and energy configuration. You can reconfigure these groups at any time through the integration's options.
 
 [![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=offdelay)
 
@@ -46,36 +45,55 @@ This integration creates the following entities:
 
 ### Sensors
 
-- **`sensor.home_status`**: Shows the current status of the home.
-  - **State**: `Home`, `NearHome`, `Away`, or `Vacation`.
-  - **Use**: Ideal for creating automations based on household presence.
-
-- **`sensor.weather_max_temp_today`**: The forecasted maximum temperature for the current day.
+- **Max Temp Today** (`sensor.weather_max_temp_today`): The forecasted maximum temperature for the current day.
   - **Unit**: `°C`
 
-- **`sensor.weather_condition_rank_today`**: A numerical rank for today's forecasted weather.
-  - **Details**: A higher number is better (e.g., sunny=4, rainy=1). This helps in creating automations based on "good" vs "bad" weather without dealing with multiple condition strings.
+- **Min Temp Today** (`sensor.weather_min_temp_today`): The forecasted minimum temperature for the current day.
+  - **Unit**: `°C`
 
-- **`sensor.weather_condition_rank_tomorrow`**: Same as above, but for tomorrow's forecast.
+- **Summer Night Temp Reading** (`sensor.summer_night_temp_reading`): Mirrors the configured summer night temperature sensor.
+  - **Unit**: `°C`
+  - **Category**: Diagnostic
 
-- **`sensor.weather_condition_today`**: The friendly name of the forecasted weather condition for today.
-  - **Example States**: `sunny`, `cloudy`, `rainy`.
-
-- **`sensor.weather_condition_tomorrow`**: The friendly name of the forecasted weather condition for tomorrow.
+- **Winter Night Temp Reading** (`sensor.winter_night_temp_reading`): Mirrors the configured winter night temperature sensor.
+  - **Unit**: `°C`
+  - **Category**: Diagnostic
 
 ### Binary Sensors
 
-- **`binary_sensor.is_home`**: A simple sensor indicating if anyone is home.
-  - **State**: `on` when anyone is in the `home` zone, `off` otherwise.
+- **Is Home** (`binary_sensor.is_home`): Indicates if anyone is home.
+  - **State**: `on` when at least one person is in the `home` zone, `off` otherwise.
 
-### Switch
+- **Climate Mode Winter** (`binary_sensor.climate_mode_winter`): Indicates if the current climate mode is winter.
 
-- **`switch.home_vacation`**: An input switch to manually control vacation mode.
-  - **Action**: Turning this switch `on` will force the `sensor.home_status` to `Vacation`.
+- **Climate Mode Summer** (`binary_sensor.climate_mode_summer`): Indicates if the current climate mode is summer.
+
+- **Climate Mode Winter/Summer** (`binary_sensor.climate_mode_winter_summer`): Indicates if the current climate mode is either winter or summer (i.e., not in transition).
+
+- **Boost Binary Sensors** (per configured climate): For each climate entity configured for boost, a summer and winter boost binary sensor is created (e.g., `binary_sensor.living_room_boost_summer`).
+
+### Switches
+
+- **Vacation Mode** (`switch.vacation_mode`): Manually control vacation mode. Auto-turns off after arriving home (minimum 4 hours).
+
+- **Guest Mode** (`switch.guest_mode`): Auto-activates when nobody is home but occupancy is detected. Configurable turn-on and turn-off delays.
+
+- **Boost Switches** (per configured climate): For each climate entity configured for boost, a switch is created to toggle boost mode (e.g., `switch.living_room_boost`).
 
 ## Blueprints
 
 This integration comes with pre-made blueprints to help you get started with automations and scripts. Once the integration is installed, these blueprints will be available in your Home Assistant instance.
+
+### Automations
+
+- **Advanced Heating Control** (`climate_heatpump_V1`): Room-based heating and cooling control based on people presence, climate mode, and temperature thresholds.
+- **Sensor Light** (`light_sensor_V1`): Customizable lighting control triggered by motion or other sensors.
+- **EnOcean PTM215Z Switch** (`light_enocean_switch_V2`): Zigbee2MQTT EnOcean Friends of Hue switch support with dimming.
+
+### Scripts
+
+- **Entity Auto Turn Off** (`entity_auto_turn_off_v1`): Turns a switch on, waits a configured duration, then turns it off.
+- **Notifications** (`notification_v1`): Configurable notification delivery.
 
 ### How to Find the Blueprints
 
@@ -107,4 +125,4 @@ If you encounter any issues with this integration, here are a few common trouble
 Contributions are welcome! If you'd like to contribute to this project, please see our [contributing guidelines](CONTRIBUTING.md).
 
 ## License
-This project is licensed under the [Apache 2.0 License](LICENSE.md).
+This project is licensed under the [Apache 2.0 License](LICENSE).

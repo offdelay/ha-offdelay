@@ -10,8 +10,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
-from homeassistant.const import UnitOfTemperature
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.const import EntityCategory, UnitOfTemperature
 
 from .const import CONF_SUMMER_NIGHT_TEMP_SENSOR, CONF_WINTER_NIGHT_TEMP_SENSOR
 from .entity import OffdelayEntity
@@ -120,14 +119,14 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
     def native_value(self) -> float | None:
         """Return the current temperature from the source sensor."""
         if not self._source_entity_id:
-            return self._attr_native_value
+            return self._attr_native_value  # type: ignore
         state = self.coordinator.hass.states.get(self._source_entity_id)
         if state is None or state.state in {"unavailable", "unknown"}:
-            return self._attr_native_value
+            return self._attr_native_value  # type: ignore
         try:
             return float(state.state)
         except (ValueError, TypeError):
-            return self._attr_native_value
+            return self._attr_native_value  # type: ignore
 
     async def async_added_to_hass(self) -> None:
         """Restore last known state before registering coordinator listener."""
@@ -145,7 +144,7 @@ class OffdelayWeatherSensor(OffdelayEntity, RestoreSensor):
         value = self.coordinator.data.get(self.entity_description.key)
         if value is not None:
             return value
-        return self._attr_native_value
+        return self._attr_native_value  # type: ignore
 
     async def async_added_to_hass(self) -> None:
         """Restore last known state before registering coordinator listener."""

@@ -58,29 +58,29 @@ async def test_setup_happy_path_climate_presence_energy(hass: HomeAssistant) -> 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "user"
+    assert result.get("type") == data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "user"
 
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], CLIMATE_INPUT
+        result.get("flow_id"), CLIMATE_INPUT
     )
-    assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "presence"
+    assert result.get("type") == data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "presence"
 
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], PRESENCE_INPUT
+        result.get("flow_id"), PRESENCE_INPUT
     )
-    assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "energy"
+    assert result.get("type") == data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "energy"
 
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], ENERGY_INPUT
+        result.get("flow_id"), ENERGY_INPUT
     )
-    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Offdelay"
+    assert result.get("type") == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result.get("title") == "Offdelay"
 
     expected = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
-    assert result["data"] == expected
+    assert result.get("data") == expected
 
 
 @pytest.mark.parametrize(
@@ -89,10 +89,6 @@ async def test_setup_happy_path_climate_presence_energy(hass: HomeAssistant) -> 
         (
             {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 25.0},
             "winter_summer_temp_conflict",
-        ),
-        (
-            {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 19.95},
-            "winter_summer_temp_too_close",
         ),
         (
             {
@@ -111,10 +107,12 @@ async def test_climate_validation_blocks_advance(
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], payload)
-    assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "user"
-    assert result["errors"] == {"base": expected_error}
+    result = await hass.config_entries.flow.async_configure(
+        result.get("flow_id"), payload
+    )
+    assert result.get("type") == data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "user"
+    assert result.get("errors") == {"base": expected_error}
 
 
 async def test_reconfigure_shows_menu(hass: HomeAssistant) -> None:
@@ -124,9 +122,12 @@ async def test_reconfigure_shows_menu(hass: HomeAssistant) -> None:
     entry.add_to_hass(hass)
 
     result = await entry.start_reconfigure_flow(hass)
-    assert result["type"] == data_entry_flow.FlowResultType.MENU
-    assert result["step_id"] == "reconfigure"
-    assert set(result["menu_options"]) == {
+    assert result.get("type") == data_entry_flow.FlowResultType.MENU
+    assert result.get("step_id") == "reconfigure"
+
+    menu_options = result.get("menu_options")
+    assert isinstance(menu_options, list)
+    assert set(menu_options) == {
         "reconfigure_climate",
         "reconfigure_presence",
         "reconfigure_energy",
@@ -143,16 +144,16 @@ async def test_reconfigure_climate_only_updates_climate_keys(
 
     result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"next_step_id": "reconfigure_climate"}
+        result.get("flow_id"), {"next_step_id": "reconfigure_climate"}
     )
-    assert result["step_id"] == "reconfigure_climate"
+    assert result.get("step_id") == "reconfigure_climate"
 
     new_climate = {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 16.5}
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], new_climate
+        result.get("flow_id"), new_climate
     )
-    assert result["type"] == data_entry_flow.FlowResultType.ABORT
-    assert result["reason"] == "reconfigure_successful"
+    assert result.get("type") == data_entry_flow.FlowResultType.ABORT
+    assert result.get("reason") == "reconfigure_successful"
 
     expected = {**new_climate, **PRESENCE_INPUT, **ENERGY_INPUT}
     assert dict(entry.data) == expected
@@ -168,13 +169,13 @@ async def test_reconfigure_climate_validation_blocks_advance(
 
     result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"next_step_id": "reconfigure_climate"}
+        result.get("flow_id"), {"next_step_id": "reconfigure_climate"}
     )
     bad = {**CLIMATE_INPUT, CONF_WINTER_DAY_MAX_TEMP: 25.0}
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], bad)
-    assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "reconfigure_climate"
-    assert result["errors"] == {"base": "winter_summer_temp_conflict"}
+    result = await hass.config_entries.flow.async_configure(result.get("flow_id"), bad)
+    assert result.get("type") == data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "reconfigure_climate"
+    assert result.get("errors") == {"base": "winter_summer_temp_conflict"}
 
 
 async def test_reconfigure_presence_only_updates_presence_keys(
@@ -187,16 +188,16 @@ async def test_reconfigure_presence_only_updates_presence_keys(
 
     result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"next_step_id": "reconfigure_presence"}
+        result.get("flow_id"), {"next_step_id": "reconfigure_presence"}
     )
-    assert result["step_id"] == "reconfigure_presence"
+    assert result.get("step_id") == "reconfigure_presence"
 
     new_presence = {**PRESENCE_INPUT, CONF_GUEST_TURN_ON_DELAY: 9}
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], new_presence
+        result.get("flow_id"), new_presence
     )
-    assert result["type"] == data_entry_flow.FlowResultType.ABORT
-    assert result["reason"] == "reconfigure_successful"
+    assert result.get("type") == data_entry_flow.FlowResultType.ABORT
+    assert result.get("reason") == "reconfigure_successful"
 
     expected = {**CLIMATE_INPUT, **new_presence, **ENERGY_INPUT}
     assert dict(entry.data) == expected
@@ -212,9 +213,9 @@ async def test_reconfigure_energy_only_updates_energy_keys(
 
     result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"next_step_id": "reconfigure_energy"}
+        result.get("flow_id"), {"next_step_id": "reconfigure_energy"}
     )
-    assert result["step_id"] == "reconfigure_energy"
+    assert result.get("step_id") == "reconfigure_energy"
 
     new_energy = {
         CONF_CLIMATES_BOOST: ["climate.new_boost"],
@@ -222,10 +223,10 @@ async def test_reconfigure_energy_only_updates_energy_keys(
         CONF_BOOST_WINTER_TEMP: 24.0,
     }
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], new_energy
+        result.get("flow_id"), new_energy
     )
-    assert result["type"] == data_entry_flow.FlowResultType.ABORT
-    assert result["reason"] == "reconfigure_successful"
+    assert result.get("type") == data_entry_flow.FlowResultType.ABORT
+    assert result.get("reason") == "reconfigure_successful"
 
     expected = {**CLIMATE_INPUT, **PRESENCE_INPUT, **new_energy}
     assert dict(entry.data) == expected

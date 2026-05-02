@@ -25,4 +25,3 @@ jobs:
     steps:
       - uses: "actions/checkout@v6"
       - uses: "home-assistant/actions/hassfest@master"
-

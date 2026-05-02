@@ -2,14 +2,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Start Home Assistant (Debugpy)",
+            "name": "Home Assistant: Debug",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/scripts/develop_debug.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
+            "module": "homeassistant",
             "justMyCode": false,
-            "redirectOutput": true
+            "args": [
+                "--config",
+                "${workspaceFolder}/config"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         }
     ]
 }
