@@ -1,0 +1,140 @@
+# ========================
+# 📦 PROJECT METADATA
+# ========================
+[project]
+name = "offdelay"
+version = "0.1.0"
+requires-python = ">=3.13"
+
+
+# ========================
+# 🧪 TESTING (PYTEST)
+# ========================
+[tool.pytest.ini_options]
+testpaths = "tests"
+norecursedirs = [".git", ".mypy_cache", ".ruff_cache"]
+
+addopts = [
+  "-p syrupy",
+  "--strict",
+  "--cov=custom_components",
+  "--cov-branch",
+  "--cov-report=term",
+  "--cov-report=html",
+]
+
+# Async behavior (important for Home Assistant)
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+
+# ========================
+# 📊 COVERAGE
+# ========================
+[tool.coverage.run]
+source = ["custom_components"]
+
+[tool.coverage.report]
+exclude_also = [
+  "raise NotImplemented\\(\\)",
+  "if __name__ == ['\"]__main__[\"']:",
+]
+show_missing = true
+
+
+# ========================
+# 🧹 LINTING (RUFF)
+# ========================
+[tool.ruff.lint]
+select = [
+  # --- Core correctness (MUST HAVE) ---
+  "F",      # Pyflakes (real errors)
+  "E", "W", # pycodestyle (basic sanity)
+  "B",      # bugbear (common bugs)
+
+  # --- Code quality ---
+  "PL",     # pylint (important structural issues)
+  "RET",    # return patterns (cleaner logic)
+  "SIM",    # simplify code
+
+  # --- Imports ---
+  "I",      # import sorting (isort)
+
+  # --- Modern Python ---
+  "UP",     # pyupgrade (use modern syntax)
+
+  # --- Async (important for HA) ---
+  "ASYNC",
+
+  # --- Security (lightweight but useful) ---
+  "S",
+
+  # --- Logging correctness ---
+  "LOG",
+  "G",
+
+  # --- Testing hygiene ---
+  "PT",
+
+  # --- Performance (low noise, good wins) ---
+  "PERF",
+
+  # --- Documentation ---
+  "D",    # pydocstyle (docstring presence + style)
+  "DOC",  # pydoclint (docstring correctness vs signature)
+]
+
+ignore = [
+  # --- Line length (let formatter handle it) ---
+  "E501",
+
+  # --- Too strict / noisy pylint rules ---
+  "PLR0911",  # too many returns
+  "PLR0912",  # too many branches
+  "PLR0913",  # too many args
+  "PLR0915",  # too many statements
+
+  # --- Home Assistant realities ---
+  "S101",     # allow assert in tests
+]
+
+
+# ========================
+# 🧹 LINTING CUSTOMIZATION
+# ========================
+
+# --- Import aliases ---
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+voluptuous = "vol"
+"homeassistant.helpers.config_validation" = "cv"
+"homeassistant.helpers.device_registry" = "dr"
+"homeassistant.helpers.entity_registry" = "er"
+"homeassistant.helpers.issue_registry" = "ir"
+"homeassistant.util.dt" = "dt_util"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+# --- Import sorting ---
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+combine-as-imports = true
+split-on-trailing-comma = false
+
+# --- File-specific overrides ---
+[tool.ruff.lint.per-file-ignores]
+".github/*.py" = [
+  "ANN",
+  "INP001",
+]
+
+"tests/**" = [
+  "S101",     # asserts are fine in tests
+  "PLR2004",  # magic values in tests are fine
+]

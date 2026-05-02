@@ -1,0 +1,56 @@
+# -----------------------------
+# Python artifacts
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.pytest_cache/
+*.mypy_cache/
+.venv
+
+# Build / packaging
+build/
+dist/
+*.wheel
+*.tar.gz
+
+# -----------------------------
+# Home Assistant configuration
+# -----------------------------
+# Ignore all config, except the configuration.yaml
+config/*
+!config/configuration.yaml
+
+# Home Assistant database and logs
+*.db
+*.db-shm
+*.db-wal
+*.log
+home-assistant.log*
+home-assistant_v2.db*
+
+# -----------------------------
+# Coverage / Linting / Misc
+# -----------------------------
+.coverage
+coverage.xml
+.ruff_cache
+uv.lock
+
+# -----------------------------
+# VS Code and IDEs
+# -----------------------------
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# -----------------------------
+# Temporary / OS files
+# -----------------------------
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+.devcontainer-lock.json
+
+.sisyphus/

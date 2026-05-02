@@ -1,0 +1,131 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Climate",
+                "description": "Configure climate thresholds and entities. If you need help with the configuration, see the documentation at {docs_url}.",
+                "data": {
+                    "climate_day_start_hour": "Climate Day Logic Start Hour",
+                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
+                    "summer_day_min_temp": "Summer Mode Day Min Temperature",
+                    "climate_night_start_hour": "Climate Night Logic Start Hour",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
+                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
+                    "winter_night_min_temp": "Winter Mode Night Min Temperature",
+                    "summer_night_temp_sensor": "Summer Night Temperature Sensor",
+                    "summer_night_max_temp": "Summer Mode Night Max Temperature",
+                    "summer_night_min_temp": "Summer Mode Night Min Temperature"
+                }
+            },
+            "reconfigure": {
+                "title": "Reconfigure Offdelay",
+                "description": "Choose which configuration group to update.",
+                "menu_options": {
+                    "reconfigure_climate": "Climate",
+                    "reconfigure_presence": "Presence",
+                    "reconfigure_energy": "Energy"
+                }
+            },
+            "reconfigure_climate": {
+                "title": "Climate",
+                "description": "Update climate thresholds and entities.",
+                "data": {
+                    "climate_day_start_hour": "Climate Day Logic Start Hour",
+                    "winter_day_max_temp": "Winter Mode Day Max Temperature",
+                    "summer_day_min_temp": "Summer Mode Day Min Temperature",
+                    "climate_night_start_hour": "Climate Night Logic Start Hour",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
+                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
+                    "winter_night_min_temp": "Winter Mode Night Min Temperature",
+                    "summer_night_temp_sensor": "Summer Night Temperature Sensor",
+                    "summer_night_max_temp": "Summer Mode Night Max Temperature",
+                    "summer_night_min_temp": "Summer Mode Night Min Temperature"
+                }
+            },
+            "reconfigure_presence": {
+                "title": "Presence",
+                "description": "Update occupancy sensors, guest mode delays, and tracked persons.",
+                "data": {
+                    "occupancy_sensors": "Occupancy Sensors",
+                    "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
+                    "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
+                    "persons": "Persons"
+                }
+            },
+            "reconfigure_energy": {
+                "title": "Energy",
+                "description": "Update energy-related entities. Currently manages boost heat pump climates.",
+                "data": {
+                    "climates_boost": "Boost Heatpump Climates",
+                    "boost_summer_temp": "Boost Summer Temperature",
+                    "boost_winter_temp": "Boost Winter Temperature"
+                }
+            },
+            "presence": {
+                "title": "Presence",
+                "description": "Configure occupancy sensors, guest mode delays, and tracked persons.",
+                "data": {
+                    "occupancy_sensors": "Occupancy Sensors",
+                    "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
+                    "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
+                    "persons": "Persons"
+                }
+            },
+            "energy": {
+                "title": "Energy",
+                "description": "Configure energy-related entities. Currently manages boost heat pump climates.",
+                "data": {
+                    "climates_boost": "Boost Heatpump Climates",
+                    "boost_summer_temp": "Boost Summer Temperature",
+                    "boost_winter_temp": "Boost Winter Temperature"
+                }
+            }
+        },
+        "error": {
+            "winter_summer_temp_conflict": "Winter max temperature must be lower than summer min temperature.",
+            "winter_summer_temp_too_close": "The difference between winter and summer temperatures must be greater than 0.1\u00b0C.",
+            "day_night_hour_conflict": "Day start hour must be less than night start hour."
+        },
+        "abort": {
+            "already_configured": "This entry is already configured."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "weather_max_temp_today": {
+                "name": "Max Temp Today"
+            },
+            "weather_min_temp_today": {
+                "name": "Min Temp Today"
+            },
+            "summer_night_temp_reading": {
+                "name": "Summer Night Temp Reading"
+            },
+            "winter_night_temp_reading": {
+                "name": "Winter Night Temp Reading"
+            }
+        },
+        "binary_sensor": {
+            "climate_mode_winter": {
+                "name": "Climate Mode Winter"
+            },
+            "climate_mode_summer": {
+                "name": "Climate Mode Summer"
+            },
+            "climate_mode_winter_summer": {
+                "name": "Climate Mode Winter/Summer"
+            },
+            "is_home": {
+                "name": "Is Home"
+            }
+        },
+        "switch": {
+            "guest_mode": {
+                "name": "Guest Mode"
+            },
+            "vacation_mode": {
+                "name": "Vacation Mode"
+            }
+        }
+    }
+}

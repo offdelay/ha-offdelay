@@ -1,0 +1,56 @@
+"""Tests for the Offdelay integration."""
+
+from collections.abc import Callable
+import datetime as dt
+
+from freezegun.api import FrozenDateTimeFactory
+from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
+
+MOCK_UTC_NOW = dt.datetime(2026, 1, 20, 10, 51, 32, 3245, tzinfo=dt.UTC)
+
+
+class MockNow:
+    """Class to mock the now function."""
+
+    def __init__(self, hass: HomeAssistant, freezer: FrozenDateTimeFactory):
+        """Initialize the mock now class."""
+        super().__init__()
+        self.hass = hass
+        self.freezer = freezer
+
+    def _tick(
+        self,
+        tick: float
+        | dt.datetime
+        | dt.timedelta
+        | Callable[[], float | dt.datetime | dt.timedelta],
+    ) -> None:
+        """Tick the clock."""
+        if callable(tick):
+            tick = tick()
+        if isinstance(tick, dt.datetime):
+            tick -= dt_util.utcnow()
+        if isinstance(tick, (int, float)):
+            tick = dt.timedelta(seconds=tick)
+        self.freezer.tick(tick)
+        async_fire_time_changed(self.hass)
+
+
+async def setup_integration(hass: HomeAssistant, config_entry: MockConfigEntry) -> None:
+    """Set up the component."""
+    config_entry.add_to_hass(hass)
+    await setup_added_integration(hass, config_entry)
+
+
+async def setup_added_integration(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+) -> None:
+    """Set up a previously added component."""
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()

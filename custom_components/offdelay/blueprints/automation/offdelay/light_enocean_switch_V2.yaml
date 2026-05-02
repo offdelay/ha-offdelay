@@ -1,0 +1,232 @@
+blueprint:
+  name: Z2M - EnOcean PTM215Z (Friends of Hue) switch, Dimming, v2.1
+  description: |
+    This blueprint is focusing on easy setting scenes and easy dimming of lights
+
+    The button on the left will dim+/dim- on one light (or a Z2M light group) when hold
+
+    Works with Zigbee2MQTT 2.0 and up
+  domain: automation
+  input:
+    controller_left:
+      name: (Zigbee2MQTT) Device Name (Left)
+      description: The name of the device as defined in z2m (e.g. Livingroom lamp). Important, If more lights are to be controlled, make a group in Z2M
+      default: ''
+    controller_right:
+      name: (Zigbee2MQTT) Device Name (Right)
+      description: The name of the device as defined in z2m (e.g. Livingroom lamp). Important, If more lights are to be controlled, make a group in Z2M
+      default: ''
+    base_topic:
+      name: (Zigbee2MQTT) Base mqtt topic
+      description: The base topic as configured in z2m. The standard is zigbee2mqtt
+      default: zigbee2mqtt
+    switch:
+      name: HA device name, action entity
+      description: The entity from HA
+      selector:
+        entity:
+          filter: 
+            - integration: mqtt
+              domain: event
+          multiple: true 
+    dim_speed:
+      name: Dimming Speed
+      description: The speed of the dimming effect. 
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 500
+          step: 1
+
+    button_1_short_release:
+      name: Button 1 short release (upper left)
+      description: Action to run, when the button 1 is released after short pres.
+      default: []
+      selector:
+        action: {}
+    button_2_short_release:
+      name: Button 2 short release (lower left)
+      description: Action to run, when the button 2 is released after short press.
+      default: []
+      selector:
+        action: {}
+    button_3_short_release:
+      name: Button 3 short release (upper right)
+      description: Action to run, when the button 3 is released after short press.
+      default: []
+      selector:
+        action: {}
+    button_4_short_release:
+      name: Button 4 short release (lower right)
+      description: Action to run, when the button 4 is released after short press.
+      default: []
+      selector:
+        action: {}
+
+    button_13_short_release:
+      name: Button 1 and 3 short release (both upper)
+      description: Action to run, when the button 1 and 3 is released after short press.
+      default: []
+      selector:
+        action: {}
+    button_13_long_release:
+      name: Button 1 and 3 long release (both upper)
+      description: Action to run, when the button 1 and 3 is released after long press.
+      default: []
+      selector:
+        action: {}
+
+    button_24_short_release:
+      name: Button 2 and 4 short release (both lower)
+      description: Action to run, when the button 1 and 3 is released after short press.
+      default: []
+      selector:
+        action: {}
+    button_24_long_release:
+      name: Button 2 and 4 long release (both lower)
+      description: Action to run, when the button 1 and 3 is released after long press.
+      default: []
+      selector:
+        action: {}
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input 'switch'
+    attribute: event_type
+    to:
+      - release_1
+      - release_2
+      - release_3
+      - release_4
+      - release_1_and_3
+      - release_2_and_4
+      - press_1
+      - press_2
+      - press_3
+      - press_4
+      - press_1_and_3
+      - press_2_and_4
+variables:
+  base_topic: !input base_topic
+  controller_left: !input controller_left
+  controller_right: !input controller_right
+  dimspeed_p: !input 'dim_speed'
+  keypress: '{{ trigger.to_state.attributes.event_type }}'
+  timediff: >-
+    {{ (trigger.to_state.last_changed -
+    trigger.from_state.last_changed).total_seconds() }}
+
+action:
+  - variables:
+      dimspeed_n: '{{ dimspeed_p | int * -1 }}'
+  - choose:
+    - conditions: '{{ keypress == ''press_1'' }}'
+      sequence: 
+      - delay:
+          seconds: 1
+      - action: mqtt.publish
+        data:
+          topic: '{{ base_topic ~ ''/'' ~ controller_left ~ ''/set''}}'
+          payload: "{\"brightness_move_onoff\": {{ dimspeed_p }} }"
+
+    - conditions: '{{ keypress == ''press_2'' }}'
+      sequence: 
+      - delay:
+          seconds: 1
+      - action: mqtt.publish
+        data:
+          topic: '{{ base_topic ~ ''/'' ~ controller_left ~ ''/set''}}'
+          payload: "{\"brightness_move_onoff\": {{ dimspeed_n }} }"
+    - conditions: '{{ keypress == ''press_3'' }}'
+      sequence: 
+      - delay:
+          seconds: 1
+      - action: mqtt.publish
+        data:
+          topic: '{{ base_topic ~ ''/'' ~ controller_right ~ ''/set''}}'
+          payload: "{\"brightness_move_onoff\": {{ dimspeed_p }} }"
+
+    - conditions: '{{ keypress == ''press_4'' }}'
+      sequence: 
+      - delay:
+          seconds: 1
+      - action: mqtt.publish
+        data:
+          topic: '{{ base_topic ~ ''/'' ~ controller_right ~ ''/set''}}'
+          payload: "{\"brightness_move_onoff\": {{ dimspeed_n }} }"
+
+    - conditions: '{{ keypress == ''release_1'' }}'
+      sequence:
+      - choose:
+        - conditions: '{{ timediff > 1 }}'
+          sequence:
+            - action: mqtt.publish
+              data:
+                topic: '{{ base_topic ~ ''/'' ~ controller_left ~ ''/set''}}'
+                payload: "{\"brightness_move\": \"stop\"}"
+        default:
+        - choose:
+          - conditions: '{{ true }}'
+            sequence: !input button_1_short_release
+
+    - conditions: '{{ keypress == ''release_2'' }}'
+      sequence:
+      - choose:
+        - conditions: '{{ timediff > 1  }}'
+          sequence:
+            - action: mqtt.publish
+              data:
+                topic: '{{ base_topic ~ ''/'' ~ controller_left ~ ''/set''}}'
+                payload: "{\"brightness_move\": \"stop\"}"
+        default:
+        - choose:
+          - conditions: '{{ true }}'
+            sequence: !input button_2_short_release
+
+    - conditions: '{{ keypress == ''release_3'' }}'
+      sequence:
+      - choose:
+        - conditions: '{{ timediff > 1 }}'
+          sequence:
+            - action: mqtt.publish
+              data:
+                topic: '{{ base_topic ~ ''/'' ~ controller_right ~ ''/set''}}'
+                payload: "{\"brightness_move\": \"stop\"}"
+        default:
+        - choose:
+          - conditions: '{{ true }}'
+            sequence: !input button_3_short_release
+
+    - conditions: '{{ keypress == ''release_4'' }}'
+      sequence:
+      - choose:
+        - conditions: '{{ timediff > 1  }}'
+          sequence:
+            - action: mqtt.publish
+              data:
+                topic: '{{ base_topic ~ ''/'' ~ controller_right ~ ''/set''}}'
+                payload: "{\"brightness_move\": \"stop\"}"
+        default:
+        - choose:
+          - conditions: '{{ true }}'
+            sequence: !input button_4_short_release
+
+    - conditions: '{{ keypress == ''release_1_and_3'' }}'
+      sequence:
+      - choose:
+        - conditions: '{{ timediff > 1 }}'
+          sequence: !input button_13_long_release
+        default:
+        - sequence: !input button_13_short_release
+
+    - conditions: '{{ keypress == ''release_2_and_4'' }}'
+      sequence:
+      - choose:
+        - conditions: '{{ timediff > 1 }}'
+          sequence: !input button_24_long_release
+        default:
+        - sequence: !input button_24_short_release

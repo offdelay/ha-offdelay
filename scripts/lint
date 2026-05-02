@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# script/lint: Run all linters and formatters defined in .pre-commit-config.yaml
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+# Ensure pre-commit is installed (safety check)
+if ! command -v pre-commit >/dev/null 2>&1; then
+    echo "==> pre-commit not found, installing..."
+    uv pip install pre-commit
+fi
+
+echo "==> Running all linting hooks..."
+
+# --all-files: Checks everything, not just staged changes
+# --show-diff-on-failure: Helpful for CI logs
+pre-commit run --all-files --show-diff-on-failure
+
+echo "==> Linting completed!"

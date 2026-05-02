@@ -1,0 +1,12 @@
+{
+  "domain": "offdelay",
+  "name": "Offdelay",
+  "codeowners": [
+    "@offdelay"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/offdelay/offdelay_integration",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/offdelay/offdelay_integration/issues",
+  "version": "0.1.0"
+}

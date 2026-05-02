@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Checking for uv..."
+command -v uv >/dev/null 2>&1 || pipx install uv
+
+echo "==> Granting permissions to vscode..."
+sudo chown -R vscode:vscode /usr/local
+
+echo "==> Installing dependencies..."
+uv pip install --system -r requirements.test.txt
+
+echo "==> Installing pre-commit hooks..."
+pre-commit install
+
+echo "==> Bootstrap completed!"

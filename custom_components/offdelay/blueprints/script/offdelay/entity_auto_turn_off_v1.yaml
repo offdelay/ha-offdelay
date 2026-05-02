@@ -1,0 +1,38 @@
+blueprint:
+  name: "Entity auto turn off v1"
+  description: "A script that turns a switch ON, waits, and turns it OFF."
+  domain: script
+  input:
+    target_switch:
+      name: Target Switch
+      description: The switch to operate.
+      selector:
+        entity:
+          domain: switch
+    delay_time:
+      name: Delay
+      description: How long to stay ON.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+          mode: box
+
+mode: restart
+
+sequence:
+  # 1. Turn the switch ON
+  - service: switch.turn_on
+    target:
+      entity_id: !input target_switch
+
+  # 2. Wait the specified time
+  - delay:
+      seconds: !input delay_time
+
+  # 3. Turn the switch OFF
+  - service: switch.turn_off
+    target:
+      entity_id: !input target_switch

@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# script/setup: Set up project for first-time use after cloning
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+scripts/bootstrap
+
+echo "==> Priming all integration dependencies (The Run-Once)..."
+# This looks at your configuration.yaml and installs everything it finds.
+# We redirect output so it doesn't clutter your setup log.
+python3 -m homeassistant --config config --script check_config
+
+echo "==> Project is now ready to go!"
