@@ -49,6 +49,10 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch all coordinator data."""
         data: dict[str, Any] = {}
 
+        for key in ("summer_night_temp_reading", "winter_night_temp_reading"):
+            if (value := self.data.get(key)) is not None:
+                data[key] = value
+
         weather = await self._update_weather_data()
 
         if weather:
@@ -89,31 +93,21 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         summer_min = self.config_entry.data.get(CONF_SUMMER_DAY_MIN_TEMP, 0.0)
 
         if weather_max_temp_today < winter_max:
-            mode = "winter"
+            mode = CLIMATE_MODE_WINTER
         elif weather_max_temp_today > summer_min:
-            mode = "summer"
+            mode = CLIMATE_MODE_SUMMER
         else:
-            mode = "none"
+            mode = CLIMATE_MODE_OFF
         return {DATA_CLIMATE_MODE: mode}
 
     def _climate_mode_night_logic(self, current_mode: str) -> dict[str, Any]:
         """Determine climate mode from night temperature sensors."""
         if current_mode == CLIMATE_MODE_SUMMER:
-            sensor_id = self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR)
-            if not sensor_id:
+            if not self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR):
                 return {DATA_CLIMATE_MODE: current_mode}
-            state = self.hass.states.get(sensor_id)
-            if state is None or state.state in {"unavailable", "unknown"}:
-                LOGGER.warning("Summer night temp sensor %s unavailable", sensor_id)
-                return {DATA_CLIMATE_MODE: current_mode}
-            try:
-                temp = float(state.state)
-            except (ValueError, TypeError):
-                LOGGER.warning(
-                    "Summer night temp sensor %s has invalid state: %s",
-                    sensor_id,
-                    state.state,
-                )
+            temp = self.data.get("summer_night_temp_reading")
+            if temp is None:
+                LOGGER.warning("Summer night temp reading unavailable")
                 return {DATA_CLIMATE_MODE: current_mode}
             min_temp = float(
                 self.config_entry.data.get(CONF_SUMMER_NIGHT_MIN_TEMP, 20.0)
@@ -121,21 +115,11 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if temp < min_temp:
                 return {DATA_CLIMATE_MODE: CLIMATE_MODE_OFF}
         elif current_mode == CLIMATE_MODE_WINTER:
-            sensor_id = self.config_entry.data.get(CONF_WINTER_NIGHT_TEMP_SENSOR)
-            if not sensor_id:
+            if not self.config_entry.data.get(CONF_WINTER_NIGHT_TEMP_SENSOR):
                 return {DATA_CLIMATE_MODE: current_mode}
-            state = self.hass.states.get(sensor_id)
-            if state is None or state.state in {"unavailable", "unknown"}:
-                LOGGER.warning("Winter night temp sensor %s unavailable", sensor_id)
-                return {DATA_CLIMATE_MODE: current_mode}
-            try:
-                temp = float(state.state)
-            except (ValueError, TypeError):
-                LOGGER.warning(
-                    "Winter night temp sensor %s has invalid state: %s",
-                    sensor_id,
-                    state.state,
-                )
+            temp = self.data.get("winter_night_temp_reading")
+            if temp is None:
+                LOGGER.warning("Winter night temp reading unavailable")
                 return {DATA_CLIMATE_MODE: current_mode}
             max_temp = float(
                 self.config_entry.data.get(CONF_WINTER_NIGHT_MAX_TEMP, 20.0)
@@ -143,32 +127,20 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if temp > max_temp:
                 return {DATA_CLIMATE_MODE: CLIMATE_MODE_OFF}
         elif current_mode == CLIMATE_MODE_OFF:
-            summer_sensor_id = self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR)
-            if summer_sensor_id:
-                state = self.hass.states.get(summer_sensor_id)
-                if state and state.state not in {"unavailable", "unknown"}:
-                    try:
-                        temp = float(state.state)
-                        max_temp = float(
-                            self.config_entry.data.get(CONF_SUMMER_NIGHT_MAX_TEMP, 20.0)
-                        )
-                        if temp > max_temp:
-                            return {DATA_CLIMATE_MODE: CLIMATE_MODE_SUMMER}
-                    except (ValueError, TypeError):
-                        pass
-            winter_sensor_id = self.config_entry.data.get(CONF_WINTER_NIGHT_TEMP_SENSOR)
-            if winter_sensor_id:
-                state = self.hass.states.get(winter_sensor_id)
-                if state and state.state not in {"unavailable", "unknown"}:
-                    try:
-                        temp = float(state.state)
-                        min_temp = float(
-                            self.config_entry.data.get(CONF_WINTER_NIGHT_MIN_TEMP, 20.0)
-                        )
-                        if temp < min_temp:
-                            return {DATA_CLIMATE_MODE: CLIMATE_MODE_WINTER}
-                    except (ValueError, TypeError):
-                        pass
+            summer_temp = self.data.get("summer_night_temp_reading")
+            if summer_temp is not None:
+                max_temp = float(
+                    self.config_entry.data.get(CONF_SUMMER_NIGHT_MAX_TEMP, 20.0)
+                )
+                if summer_temp > max_temp:
+                    return {DATA_CLIMATE_MODE: CLIMATE_MODE_SUMMER}
+            winter_temp = self.data.get("winter_night_temp_reading")
+            if winter_temp is not None:
+                min_temp = float(
+                    self.config_entry.data.get(CONF_WINTER_NIGHT_MIN_TEMP, 20.0)
+                )
+                if winter_temp < min_temp:
+                    return {DATA_CLIMATE_MODE: CLIMATE_MODE_WINTER}
         return {DATA_CLIMATE_MODE: current_mode}
 
     def _update_climate_mode(self, current_data: dict[str, Any]) -> dict[str, Any]:

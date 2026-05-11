@@ -277,35 +277,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 ),
                 vol.Optional(
-                    CONF_SUMMER_NIGHT_TEMP_SENSOR,
-                    default=defaults.get(CONF_SUMMER_NIGHT_TEMP_SENSOR, ""),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor",
-                        multiple=False,
-                    )
-                ),
-                vol.Required(
-                    CONF_SUMMER_NIGHT_MAX_TEMP,
-                    default=defaults.get(CONF_SUMMER_NIGHT_MAX_TEMP, 25.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        step=0.1,
-                    )
-                ),
-                vol.Required(
-                    CONF_SUMMER_NIGHT_MIN_TEMP,
-                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 18.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        step=0.1,
-                    )
-                ),
-                vol.Optional(
                     CONF_WINTER_NIGHT_TEMP_SENSOR,
                     default=defaults.get(CONF_WINTER_NIGHT_TEMP_SENSOR, ""),
                 ): selector.EntitySelector(
@@ -327,6 +298,35 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_WINTER_NIGHT_MIN_TEMP,
                     default=defaults.get(CONF_WINTER_NIGHT_MIN_TEMP, 19.5),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Optional(
+                    CONF_SUMMER_NIGHT_TEMP_SENSOR,
+                    default=defaults.get(CONF_SUMMER_NIGHT_TEMP_SENSOR, ""),
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        multiple=False,
+                    )
+                ),
+                vol.Required(
+                    CONF_SUMMER_NIGHT_MAX_TEMP,
+                    default=defaults.get(CONF_SUMMER_NIGHT_MAX_TEMP, 25.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement=UnitOfTemperature.CELSIUS,
+                        step=0.1,
+                    )
+                ),
+                vol.Required(
+                    CONF_SUMMER_NIGHT_MIN_TEMP,
+                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 18.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         mode=selector.NumberSelectorMode.BOX,

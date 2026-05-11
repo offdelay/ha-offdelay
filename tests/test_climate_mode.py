@@ -199,6 +199,7 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
 
     # Night (20:00): winter_night_temp > max (20.0) -> off
     hass.states.async_set("sensor.winter_night_temp", "25.0")
+    await hass.async_block_till_done()
 
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
     with (
@@ -376,6 +377,7 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
 
     # At exactly 17:00 (night_start), night logic runs
     hass.states.async_set("sensor.winter_night_temp", "25.0")
+    await hass.async_block_till_done()
 
     mock_5pm = datetime(2026, 4, 24, 17, 0, 0, tzinfo=dt_util.UTC)
     with (
@@ -423,6 +425,7 @@ async def test_night_mode_summer_to_off(hass: HomeAssistant):
 
     # Night: summer_night_temp < min (20.0) -> off
     hass.states.async_set("sensor.summer_night_temp", "15.0")
+    await hass.async_block_till_done()
 
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
     with (
@@ -467,6 +470,7 @@ async def test_night_mode_off_to_summer(hass: HomeAssistant):
 
     # First transition summer -> off
     hass.states.async_set("sensor.summer_night_temp", "15.0")
+    await hass.async_block_till_done()
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
@@ -485,6 +489,7 @@ async def test_night_mode_off_to_summer(hass: HomeAssistant):
 
     # Now off -> summer (sensor above max)
     hass.states.async_set("sensor.summer_night_temp", "25.0")
+    await hass.async_block_till_done()
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
@@ -527,6 +532,7 @@ async def test_night_mode_off_to_winter(hass: HomeAssistant):
 
     # First transition winter -> off
     hass.states.async_set("sensor.winter_night_temp", "25.0")
+    await hass.async_block_till_done()
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
@@ -545,6 +551,7 @@ async def test_night_mode_off_to_winter(hass: HomeAssistant):
 
     # Now off -> winter (sensor below min)
     hass.states.async_set("sensor.winter_night_temp", "15.0")
+    await hass.async_block_till_done()
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
@@ -587,6 +594,7 @@ async def test_night_mode_sensor_unavailable(hass: HomeAssistant):
 
     # Night: sensor unavailable -> mode stays winter
     hass.states.async_set("sensor.winter_night_temp", "unavailable")
+    await hass.async_block_till_done()
     mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
