@@ -33,12 +33,14 @@ WEATHER_ENTITY_DESCRIPTIONS = (
         translation_key="weather_max_temp_today",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="weather_min_temp_today",
         translation_key="weather_min_temp_today",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
 
@@ -85,13 +87,13 @@ async def async_setup_entry(
 
     for desc in NIGHT_TEMP_SENSOR_DESCRIPTIONS:
         config_key = NIGHT_SENSOR_CONFIG_MAP[desc.key]
-        source_entity_id = entry.data.get(config_key, "")
-        if source_entity_id:
+        source_entity_ids = entry.data.get(config_key, [])
+        if source_entity_ids:
             entities.append(
                 OffdelayNightTempSensor(
                     coordinator=coordinator,
                     entity_description=desc,
-                    source_entity_id=source_entity_id,
+                    source_entity_ids=source_entity_ids,
                 )
             )
 
@@ -105,11 +107,11 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
         self,
         coordinator: OffdelayDataUpdateCoordinator,
         entity_description: SensorEntityDescription,
-        source_entity_id: str,
+        source_entity_ids: list[str],
     ) -> None:
-        """Initialize with source entity ID."""
+        """Initialize with source entity IDs."""
         super().__init__(coordinator, entity_description)
-        self._source_entity_id = source_entity_id
+        self._source_entity_ids = list(dict.fromkeys(source_entity_ids))
 
     @property
     def native_value(self) -> float | None:
@@ -127,21 +129,29 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
 
         self._seed_initial_state()
 
-        if self._source_entity_id:
+        if self._source_entity_ids:
             self.async_on_remove(
                 async_track_state_change_event(
                     self.hass,
-                    self._source_entity_id,
+                    self._source_entity_ids,
                     self._handle_source_state_change,
                 )
             )
 
+    def _compute_min(self) -> float | None:
+        values = []
+        for eid in self._source_entity_ids:
+            state = self.hass.states.get(eid)
+            value = parse_float_state(state)
+            if value is not None:
+                values.append(value)
+        return min(values) if values else None
+
     def _seed_initial_state(self) -> None:
-        """Read the source sensor and forward its value to the coordinator."""
-        if not self._source_entity_id:
+        """Read the source sensors and forward the min value to the coordinator."""
+        if not self._source_entity_ids:
             return
-        state = self.hass.states.get(self._source_entity_id)
-        value = parse_float_state(state)
+        value = self._compute_min()
         if value is None and self._attr_native_value is not None:
             value = float(self._attr_native_value)
         if value is not None:
@@ -152,7 +162,7 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
     @callback
     def _handle_source_state_change(self, event: Event[EventStateChangedData]) -> None:
         """Handle source sensor state changes."""
-        value = parse_float_state(event.data.get("new_state"))
+        value = self._compute_min()
         if value is None:
             return
         self.coordinator.handle_night_temp_change(self.entity_description.key, value)

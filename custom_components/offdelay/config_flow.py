@@ -278,11 +278,11 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional(
                     CONF_WINTER_NIGHT_TEMP_SENSOR,
-                    default=defaults.get(CONF_WINTER_NIGHT_TEMP_SENSOR, ""),
+                    default=defaults.get(CONF_WINTER_NIGHT_TEMP_SENSOR, []),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor",
-                        multiple=False,
+                        multiple=True,
                     )
                 ),
                 vol.Required(
@@ -307,11 +307,11 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional(
                     CONF_SUMMER_NIGHT_TEMP_SENSOR,
-                    default=defaults.get(CONF_SUMMER_NIGHT_TEMP_SENSOR, ""),
+                    default=defaults.get(CONF_SUMMER_NIGHT_TEMP_SENSOR, []),
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor",
-                        multiple=False,
+                        multiple=True,
                     )
                 ),
                 vol.Required(
