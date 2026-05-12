@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
+
+
+def parse_float_state(state: State | None) -> float | None:
+    """Parse a state's value as float, or None for unavailable/unknown/unparseable."""
+    if state is None or state.state in {"unavailable", "unknown"}:
+        return None
+    try:
+        return float(state.state)
+    except (ValueError, TypeError):
+        return None
 
 
 def get_climate_friendly_name(hass: HomeAssistant, climate_entity_id: str) -> str:
