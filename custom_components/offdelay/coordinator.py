@@ -50,16 +50,11 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data: dict[str, Any] = {}
 
         for key in ("summer_night_temp_reading", "winter_night_temp_reading"):
-            if (value := self.data.get(key)) is not None:
+            if (value := (self.data or {}).get(key)) is not None:
                 data[key] = value
 
-        weather = await self._update_weather_data()
-
-        if weather:
-            data.update(weather)
-
-        climate_mode = self._update_climate_mode(data)
-        data.update(climate_mode)
+        data.update(await self._fetch_weather_slice())
+        data.update(self._compute_climate_mode_slice(data))
         data["boost_state"] = self.boost_state.copy()
 
         return data
@@ -100,12 +95,14 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             mode = CLIMATE_MODE_OFF
         return {DATA_CLIMATE_MODE: mode}
 
-    def _climate_mode_night_logic(self, current_mode: str) -> dict[str, Any]:
+    def _climate_mode_night_logic(
+        self, current_mode: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Determine climate mode from night temperature sensors."""
         if current_mode == CLIMATE_MODE_SUMMER:
             if not self.config_entry.data.get(CONF_SUMMER_NIGHT_TEMP_SENSOR):
                 return {DATA_CLIMATE_MODE: current_mode}
-            temp = self.data.get("summer_night_temp_reading")
+            temp = data.get("summer_night_temp_reading")
             if temp is None:
                 LOGGER.warning("Summer night temp reading unavailable")
                 return {DATA_CLIMATE_MODE: current_mode}
@@ -117,7 +114,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif current_mode == CLIMATE_MODE_WINTER:
             if not self.config_entry.data.get(CONF_WINTER_NIGHT_TEMP_SENSOR):
                 return {DATA_CLIMATE_MODE: current_mode}
-            temp = self.data.get("winter_night_temp_reading")
+            temp = data.get("winter_night_temp_reading")
             if temp is None:
                 LOGGER.warning("Winter night temp reading unavailable")
                 return {DATA_CLIMATE_MODE: current_mode}
@@ -127,14 +124,14 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if temp > max_temp:
                 return {DATA_CLIMATE_MODE: CLIMATE_MODE_OFF}
         elif current_mode == CLIMATE_MODE_OFF:
-            summer_temp = self.data.get("summer_night_temp_reading")
+            summer_temp = data.get("summer_night_temp_reading")
             if summer_temp is not None:
                 max_temp = float(
                     self.config_entry.data.get(CONF_SUMMER_NIGHT_MAX_TEMP, 20.0)
                 )
                 if summer_temp > max_temp:
                     return {DATA_CLIMATE_MODE: CLIMATE_MODE_SUMMER}
-            winter_temp = self.data.get("winter_night_temp_reading")
+            winter_temp = data.get("winter_night_temp_reading")
             if winter_temp is not None:
                 min_temp = float(
                     self.config_entry.data.get(CONF_WINTER_NIGHT_MIN_TEMP, 20.0)
@@ -143,7 +140,9 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     return {DATA_CLIMATE_MODE: CLIMATE_MODE_WINTER}
         return {DATA_CLIMATE_MODE: current_mode}
 
-    def _update_climate_mode(self, current_data: dict[str, Any]) -> dict[str, Any]:
+    def _compute_climate_mode_slice(
+        self, current_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Determine climate mode based on time windows and data."""
         current_mode = self.data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
         weather_result = self._climate_mode_day_logic(current_data, current_mode)
@@ -156,7 +155,37 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return weather_result
 
         weather_mode = weather_result[DATA_CLIMATE_MODE]
-        return self._climate_mode_night_logic(weather_mode)
+        return self._climate_mode_night_logic(weather_mode, current_data)
+
+    def _update_climate_mode(self, current_data: dict[str, Any]) -> dict[str, Any]:
+        """Backwards-compatible climate mode wrapper."""
+        return self._compute_climate_mode_slice(current_data)
+
+    def handle_night_temp_change(self, key: str, value: float | None) -> None:
+        """Forward a night-temp source change. Recomputes climate_mode only."""
+        if self.data is None:
+            self.data = {}
+        data = dict(self.data)
+        if value is None:
+            data.pop(key, None)
+        else:
+            data[key] = value
+        data.update(self._compute_climate_mode_slice(data))
+        data["boost_state"] = self.boost_state.copy()
+        self.async_set_updated_data(data)
+
+    async def refresh_weather(self) -> None:
+        """Explicit weather refresh; recomputes climate_mode."""
+        weather = await self._fetch_weather_slice()
+        data = dict(self.data or {})
+        data.update(weather)
+        data.update(self._compute_climate_mode_slice(data))
+        data["boost_state"] = self.boost_state.copy()
+        self.async_set_updated_data(data)
+
+    async def _update_weather_data(self) -> dict[str, Any]:
+        """Backwards-compatible weather wrapper."""
+        return await self._fetch_weather_slice()
 
     def set_boost_active(self, climate_entity_id: str, active: bool) -> None:  # noqa: FBT001
         """Set boost state for a climate entity."""
@@ -164,7 +193,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.data["boost_state"] = self.boost_state.copy()
         self.async_set_updated_data(self.data)
 
-    async def _update_weather_data(self) -> dict[str, Any]:
+    async def _fetch_weather_slice(self) -> dict[str, Any]:
         """Get weather forecast data and compute values from hourly forecasts.
 
         Returns:

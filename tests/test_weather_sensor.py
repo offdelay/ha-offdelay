@@ -22,7 +22,7 @@ async def _setup_entry(
     return entry
 
 
-async def test_update_weather_data_hourly_forecast(hass: HomeAssistant):
+async def test_fetch_weather_slice_hourly_forecast(hass: HomeAssistant):
     """Test weather data extraction from hourly forecast."""
     hass.states.async_set("weather.home", "sunny")
 
@@ -49,7 +49,7 @@ async def test_update_weather_data_hourly_forecast(hass: HomeAssistant):
         entry = await _setup_entry(hass)
         coordinator = entry.runtime_data.coordinator
 
-        weather_data = await coordinator._update_weather_data()
+        weather_data = await coordinator._fetch_weather_slice()
 
         assert weather_data == {
             "weather_max_temp_today": 20.0,
@@ -64,7 +64,7 @@ async def test_update_weather_data_hourly_forecast(hass: HomeAssistant):
         )
 
 
-async def test_update_weather_data_no_forecast(hass: HomeAssistant):
+async def test_fetch_weather_slice_no_forecast(hass: HomeAssistant):
     """Test weather data extraction when no forecast is available."""
     hass.states.async_set("weather.home", "sunny")
 
@@ -76,11 +76,11 @@ async def test_update_weather_data_no_forecast(hass: HomeAssistant):
         entry = await _setup_entry(hass)
         coordinator = entry.runtime_data.coordinator
 
-        weather_data = await coordinator._update_weather_data()
+        weather_data = await coordinator._fetch_weather_slice()
         assert weather_data == {}
 
 
-async def test_update_weather_data_no_today_entries(hass: HomeAssistant):
+async def test_fetch_weather_slice_no_today_entries(hass: HomeAssistant):
     """Test weather data extraction when no entries for today are available."""
     hass.states.async_set("weather.home", "sunny")
 
@@ -106,11 +106,11 @@ async def test_update_weather_data_no_today_entries(hass: HomeAssistant):
         entry = await _setup_entry(hass)
         coordinator = entry.runtime_data.coordinator
 
-        weather_data = await coordinator._update_weather_data()
+        weather_data = await coordinator._fetch_weather_slice()
         assert weather_data == {}
 
 
-async def test_update_weather_data_multiple_days(hass: HomeAssistant):
+async def test_fetch_weather_slice_multiple_days(hass: HomeAssistant):
     """Test weather data extraction filters out entries not for today."""
     hass.states.async_set("weather.home", "sunny")
 
@@ -138,7 +138,7 @@ async def test_update_weather_data_multiple_days(hass: HomeAssistant):
         entry = await _setup_entry(hass)
         coordinator = entry.runtime_data.coordinator
 
-        weather_data = await coordinator._update_weather_data()
+        weather_data = await coordinator._fetch_weather_slice()
 
         assert weather_data == {
             "weather_max_temp_today": 20.0,

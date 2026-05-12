@@ -10,10 +10,15 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.const import EntityCategory, UnitOfTemperature
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.core import callback
+from homeassistant.helpers.event import (
+    EventStateChangedData,
+    async_track_state_change_event,
+)
 
 from .const import CONF_SUMMER_NIGHT_TEMP_SENSOR, CONF_WINTER_NIGHT_TEMP_SENSOR
 from .entity import OffdelayEntity
+from .helpers import parse_float_state
 
 if TYPE_CHECKING:
     from homeassistant.core import Event, HomeAssistant
@@ -120,7 +125,7 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
             self._attr_native_value = last_sensor_data.native_value
         await super().async_added_to_hass()
 
-        self._sync_source_to_coordinator()
+        self._seed_initial_state()
 
         if self._source_entity_id:
             self.async_on_remove(
@@ -131,32 +136,26 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
                 )
             )
 
-    def _sync_source_to_coordinator(self) -> None:
-        """Read the source sensor and write its value into coordinator data."""
+    def _seed_initial_state(self) -> None:
+        """Read the source sensor and forward its value to the coordinator."""
         if not self._source_entity_id:
             return
         state = self.hass.states.get(self._source_entity_id)
-        if state is not None and state.state not in {"unavailable", "unknown"}:
-            try:
-                value = float(state.state)
-                self.coordinator.data[self.entity_description.key] = value
-                return
-            except (ValueError, TypeError):
-                pass
-        if self._attr_native_value is not None:
-            self.coordinator.data[self.entity_description.key] = self._attr_native_value
+        value = parse_float_state(state)
+        if value is None and self._attr_native_value is not None:
+            value = float(self._attr_native_value)
+        if value is not None:
+            self.coordinator.handle_night_temp_change(
+                self.entity_description.key, value
+            )
 
-    async def _handle_source_state_change(self, event: Event) -> None:
+    @callback
+    def _handle_source_state_change(self, event: Event[EventStateChangedData]) -> None:
         """Handle source sensor state changes."""
-        new_state = event.data.get("new_state")
-        if new_state is None or new_state.state in {"unavailable", "unknown"}:
+        value = parse_float_state(event.data.get("new_state"))
+        if value is None:
             return
-        try:
-            value = float(new_state.state)
-        except (ValueError, TypeError):
-            return
-        self.coordinator.data[self.entity_description.key] = value
-        await self.coordinator.async_request_refresh()
+        self.coordinator.handle_night_temp_change(self.entity_description.key, value)
 
 
 class OffdelayWeatherSensor(OffdelayEntity, RestoreSensor):

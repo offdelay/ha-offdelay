@@ -17,7 +17,7 @@ from .const import MOCK_CONFIG, MOCK_CONFIG_WITH_NIGHT_SENSORS
 def bypass_weather():
     """Bypass weather calls."""
     with patch(
-        "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+        "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
         new_callable=AsyncMock,
         return_value={
             "weather_max_temp_today": 20,
@@ -127,7 +127,7 @@ async def test_weather_mode_during_day_window(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_now),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -153,7 +153,7 @@ async def test_weather_mode_during_day_window_summer(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_now),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -179,7 +179,7 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_day),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -205,7 +205,7 @@ async def test_climate_mode_during_night_window(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -224,7 +224,7 @@ async def test_weather_mode_all_day_no_climates(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -257,7 +257,7 @@ async def test_weather_mode_no_climates_summer(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -290,7 +290,7 @@ async def test_mode_persists_within_same_window(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_9am),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -312,7 +312,7 @@ async def test_mode_persists_within_same_window(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_12pm),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -331,7 +331,7 @@ async def test_boundary_hour_inclusive_start(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_8am),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -357,7 +357,7 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_day),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -383,7 +383,7 @@ async def test_boundary_hour_exclusive_end(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_5pm),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -405,7 +405,7 @@ async def test_night_mode_summer_to_off(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_day),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -431,7 +431,7 @@ async def test_night_mode_summer_to_off(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -450,7 +450,7 @@ async def test_night_mode_off_to_summer(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_day),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -475,7 +475,7 @@ async def test_night_mode_off_to_summer(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -493,7 +493,7 @@ async def test_night_mode_off_to_summer(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 25,
@@ -512,7 +512,7 @@ async def test_night_mode_off_to_winter(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_day),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -537,7 +537,7 @@ async def test_night_mode_off_to_winter(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -555,7 +555,7 @@ async def test_night_mode_off_to_winter(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -574,7 +574,7 @@ async def test_night_mode_sensor_unavailable(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_day),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,
@@ -599,7 +599,7 @@ async def test_night_mode_sensor_unavailable(hass: HomeAssistant):
     with (
         patch("homeassistant.util.dt.now", return_value=mock_night),
         patch(
-            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
             new_callable=AsyncMock,
             return_value={
                 "weather_max_temp_today": 10,

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import (
@@ -205,7 +204,6 @@ class OffdelayHomeBinarySensor(BinarySensorEntity):
             entry_type=DeviceEntryType.SERVICE,
         )
         self._is_on = False
-        self._unsub: Callable[[], None] | None = None
 
     @property
     def is_on(self) -> bool:
@@ -215,15 +213,11 @@ class OffdelayHomeBinarySensor(BinarySensorEntity):
     async def async_added_to_hass(self) -> None:
         """Subscribe to zone.home state changes on entity load."""
         self._update_from_zone_state()
-        self._unsub = async_track_state_change_event(
-            self.hass, ZONE_HOME_ENTITY, self._async_zone_home_changed
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass, ZONE_HOME_ENTITY, self._async_zone_home_changed
+            )
         )
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Unsubscribe from zone.home state changes on entity removal."""
-        if self._unsub is not None:
-            self._unsub()
-            self._unsub = None
 
     @callback
     def _async_zone_home_changed(self, event: Event[EventStateChangedData]) -> None:  # noqa: ARG002

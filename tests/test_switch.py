@@ -20,7 +20,7 @@ from .const import MOCK_CONFIG, MOCK_CONFIG_WITH_OCCUPANCY, MOCK_CONFIG_WITH_PER
 @pytest.fixture(autouse=True)
 def bypass_weather():
     with patch(
-        "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._update_weather_data",
+        "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
         new_callable=AsyncMock,
         return_value={
             "weather_max_temp_today": 20,

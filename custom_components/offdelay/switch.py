@@ -144,7 +144,6 @@ class GuestModeSwitch(SwitchEntity):
         self._manual_override = False
         self._on_timer: CALLBACK_TYPE | None = None
         self._off_timer: CALLBACK_TYPE | None = None
-        self._listeners: list[CALLBACK_TYPE] = []
 
     @property
     def is_on(self) -> bool:
@@ -167,24 +166,21 @@ class GuestModeSwitch(SwitchEntity):
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to zone.home and occupancy sensor changes."""
-        self._listeners.append(
+        self.async_on_remove(
             async_track_state_change_event(
                 self.hass, ZONE_HOME_ENTITY, self._async_zone_home_changed
             )
         )
         for eid in self._occupancy_sensors:
-            self._listeners.append(
+            self.async_on_remove(
                 async_track_state_change_event(
                     self.hass, eid, self._async_occupancy_changed
                 )
             )
 
     async def async_will_remove_from_hass(self) -> None:
-        """Unsubscribe from state changes when entity is removed."""
+        """Cancel timers when entity is removed."""
         self._cancel_all_timers()
-        for unsub in self._listeners:
-            unsub()
-        self._listeners.clear()
 
     @callback
     def _async_zone_home_changed(self, _event: Event) -> None:
@@ -280,7 +276,6 @@ class VacationModeSwitch(SwitchEntity):
         self._on_since: dt.datetime | None = None
         self._manual_override = False
         self._timer: CALLBACK_TYPE | None = None
-        self._listeners: list[CALLBACK_TYPE] = []
 
     @property
     def is_on(self) -> bool:
@@ -305,18 +300,15 @@ class VacationModeSwitch(SwitchEntity):
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to zone.home state changes."""
-        self._listeners.append(
+        self.async_on_remove(
             async_track_state_change_event(
                 self.hass, ZONE_HOME_ENTITY, self._zone_changed
             )
         )
 
     async def async_will_remove_from_hass(self) -> None:
-        """Unsubscribe from state changes when entity is removed."""
+        """Cancel timers when entity is removed."""
         self._cancel()
-        for unsub in self._listeners:
-            unsub()
-        self._listeners.clear()
 
     @callback
     def _zone_changed(self, _event: Event) -> None:
