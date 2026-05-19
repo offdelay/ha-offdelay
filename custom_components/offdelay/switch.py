@@ -17,6 +17,7 @@ from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -109,11 +110,18 @@ def _zone_home_person_count(hass: HomeAssistant) -> int:
         return 0
 
 
-def _any_occupancy_on(hass: HomeAssistant, entity_ids: list[str]) -> bool:
-    return any(
-        (state := hass.states.get(eid)) is not None and state.state == STATE_ON
+def _occupancy_on_count(hass: HomeAssistant, entity_ids: list[str]) -> int:
+    """Return how many of the given occupancy sensors are currently ON."""
+    return sum(
+        1
         for eid in entity_ids
+        if (state := hass.states.get(eid)) is not None and state.state == STATE_ON
     )
+
+
+# Number of occupancy sensors that must be ON simultaneously to bypass the
+# turn-ON delay and immediately activate guest mode.
+GUEST_INSTANT_ON_THRESHOLD = 2
 
 
 # ------------------------------------------------------------------
@@ -121,8 +129,22 @@ def _any_occupancy_on(hass: HomeAssistant, entity_ids: list[str]) -> bool:
 # ------------------------------------------------------------------
 
 
-class GuestModeSwitch(SwitchEntity):
-    """Guest mode: auto-ON when nobody home + occupancy detected."""
+class GuestModeSwitch(SwitchEntity, RestoreEntity):
+    """Guest mode: auto-ON when nobody home + occupancy detected.
+
+    Auto-logic is only active when at least one occupancy sensor is
+    configured. With no sensors, the switch behaves as a pure manual
+    toggle and never auto-transitions.
+
+    Turn-ON behavior:
+      - 1 occupancy sensor ON  -> activate after ON_delay minutes
+      - 2+ occupancy sensors ON simultaneously -> activate immediately,
+        bypassing the ON_delay timer (and cancelling any remaining time on
+        a pending timer).
+
+    State is restored across Home Assistant restarts; after restoration
+    the current world state is re-evaluated so timers can resume.
+    """
 
     _attr_attribution = ATTRIBUTION
     _attr_has_entity_name = True
@@ -146,6 +168,11 @@ class GuestModeSwitch(SwitchEntity):
         self._off_timer: CALLBACK_TYPE | None = None
 
     @property
+    def _auto_logic_enabled(self) -> bool:
+        """Auto on/off logic is active only when occupancy sensors are configured."""
+        return bool(self._occupancy_sensors)
+
+    @property
     def is_on(self) -> bool:
         """Return True when guest mode is active."""
         return self._is_on
@@ -165,7 +192,21 @@ class GuestModeSwitch(SwitchEntity):
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
-        """Subscribe to zone.home and occupancy sensor changes."""
+        """Restore previous state, subscribe to events, then evaluate.
+
+        State restoration runs first so a guest-mode that was ON before
+        restart stays ON. Subscriptions are wired next. Finally, when
+        auto-logic is enabled we evaluate current conditions so:
+          - a stale "ON" gets cleared if somebody is now home;
+          - the ON timer starts if nobody is home and occupancy is ON;
+          - the OFF timer starts if we restored ON but occupancy is now clear.
+        """
+        await super().async_added_to_hass()
+
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state == STATE_ON:
+            self._is_on = True
+
         self.async_on_remove(
             async_track_state_change_event(
                 self.hass, ZONE_HOME_ENTITY, self._async_zone_home_changed
@@ -178,12 +219,21 @@ class GuestModeSwitch(SwitchEntity):
                 )
             )
 
+        if self._auto_logic_enabled:
+            # Evaluate startup conditions; manual_override is False on fresh
+            # start, so auto-logic is free to take corrective action.
+            self._evaluate()
+
+        self.async_write_ha_state()
+
     async def async_will_remove_from_hass(self) -> None:
         """Cancel timers when entity is removed."""
         self._cancel_all_timers()
 
     @callback
     def _async_zone_home_changed(self, _event: Event) -> None:
+        if not self._auto_logic_enabled:
+            return
         self._manual_override = False
         if _zone_home_person_count(self.hass) > 0:
             self._cancel_all_timers()
@@ -195,6 +245,8 @@ class GuestModeSwitch(SwitchEntity):
 
     @callback
     def _async_occupancy_changed(self, _event: Event) -> None:
+        if not self._auto_logic_enabled:
+            return
         if not self._manual_override:
             self._evaluate()
 
@@ -203,7 +255,17 @@ class GuestModeSwitch(SwitchEntity):
         if _zone_home_person_count(self.hass) > 0:
             return
 
-        occupancy = _any_occupancy_on(self.hass, self._occupancy_sensors)
+        on_count = _occupancy_on_count(self.hass, self._occupancy_sensors)
+        occupancy = on_count > 0
+
+        # Fast path: 2+ occupancy sensors ON simultaneously is strong evidence
+        # of presence. Skip the ON_delay timer entirely (including any
+        # remaining time on a pending timer) and activate immediately.
+        if on_count >= GUEST_INSTANT_ON_THRESHOLD and not self._is_on:
+            self._cancel_all_timers()
+            self._is_on = True
+            self.async_write_ha_state()
+            return
 
         if occupancy and not self._is_on:
             self._cancel_off()

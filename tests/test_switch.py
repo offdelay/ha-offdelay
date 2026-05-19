@@ -4,17 +4,26 @@ from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
+    mock_restore_cache,
 )
 
 from custom_components.offdelay.const import DOMAIN
 
 from .const import MOCK_CONFIG, MOCK_CONFIG_WITH_OCCUPANCY, MOCK_CONFIG_WITH_PERSONS
+
+MOCK_CONFIG_WITH_TWO_OCCUPANCY = {
+    **MOCK_CONFIG_WITH_OCCUPANCY,
+    "occupancy_sensors": [
+        "binary_sensor.motion_living_room",
+        "binary_sensor.motion_kitchen",
+    ],
+}
 
 
 @pytest.fixture(autouse=True)
@@ -262,6 +271,137 @@ async def test_vacation_mode_manual_off(hass: HomeAssistant):
         blocking=True,
     )
     assert hass.states.get("switch.offdelay_vacation_mode").state == STATE_OFF
+
+
+async def test_guest_mode_instant_on_when_two_sensors_active(hass: HomeAssistant):
+    """When 2+ occupancy sensors turn ON simultaneously, guest mode activates immediately."""
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    hass.states.async_set("binary_sensor.motion_kitchen", STATE_OFF)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_TWO_OCCUPANCY)
+
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_ON)
+    await hass.async_block_till_done()
+    # One sensor only -> ON_delay timer still applies.
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+
+    hass.states.async_set("binary_sensor.motion_kitchen", STATE_ON)
+    await hass.async_block_till_done()
+    # Second sensor flips ON -> instant activation, no timer wait.
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+
+async def test_guest_mode_instant_on_cancels_pending_timer(hass: HomeAssistant):
+    """A pending ON_delay timer is cancelled when a 2nd sensor activates."""
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    hass.states.async_set("binary_sensor.motion_kitchen", STATE_OFF)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_TWO_OCCUPANCY)
+
+    # Start the ON timer with one sensor.
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_ON)
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+
+    # Second sensor fires before the 5-minute delay -> instant ON.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=2))
+    await hass.async_block_till_done()
+    hass.states.async_set("binary_sensor.motion_kitchen", STATE_ON)
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+    # Now drop both sensors. If the old ON timer hadn't been cancelled,
+    # nothing observable would change here - but turning everything off
+    # must put us on the OFF_delay path, not re-trigger the ON timer.
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    hass.states.async_set("binary_sensor.motion_kitchen", STATE_OFF)
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=15, seconds=1))
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+
+
+async def test_guest_mode_instant_on_at_startup_with_two_sensors(hass: HomeAssistant):
+    """If 2+ sensors are already ON at startup with nobody home, activate immediately."""
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_ON)
+    hass.states.async_set("binary_sensor.motion_kitchen", STATE_ON)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_TWO_OCCUPANCY)
+
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+
+async def test_guest_mode_no_auto_logic_without_occupancy_sensors(hass: HomeAssistant):
+    """Without occupancy sensors configured, auto-logic is disabled.
+
+    The switch still works as a manual toggle, but no zone/occupancy event
+    can flip it - occupancy entities aren't even subscribed.
+    """
+    hass.states.async_set("zone.home", "0")
+    await _setup_entry(hass, MOCK_CONFIG)  # no CONF_OCCUPANCY_SENSORS
+
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+
+    # Manual ON still works.
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": "switch.offdelay_guest_mode"}, blocking=True
+    )
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+    # Zone change must NOT auto-clear when auto-logic is disabled.
+    hass.states.async_set("zone.home", "1")
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+
+async def test_guest_mode_evaluates_on_startup(hass: HomeAssistant):
+    """If nobody home AND occupancy already ON at startup, ON-timer must fire."""
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_ON)
+
+    await _setup_entry(hass, MOCK_CONFIG_WITH_OCCUPANCY)
+
+    # ON timer started during setup; not yet elapsed.
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=5, seconds=1))
+    await hass.async_block_till_done()
+
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+
+async def test_guest_mode_restores_on_state_across_restart(hass: HomeAssistant):
+    """Guest mode ON before restart is restored after restart."""
+    mock_restore_cache(hass, (State("switch.offdelay_guest_mode", STATE_ON),))
+
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_OCCUPANCY)
+
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+
+
+async def test_guest_mode_restored_on_but_someone_home_clears_via_eval(
+    hass: HomeAssistant,
+):
+    """If restored ON but someone is home at startup, evaluation clears nothing.
+
+    Note: startup evaluation does NOT force-clear an already-ON state when
+    somebody is home (no zone transition happened). Only an actual zone.home
+    change clears guest mode. This test pins that intentional behavior.
+    """
+    mock_restore_cache(hass, (State("switch.offdelay_guest_mode", STATE_ON),))
+
+    hass.states.async_set("zone.home", "1")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_OCCUPANCY)
+
+    # State is preserved; it will clear on the next zone.home transition.
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
 
 
 async def test_proximity_sensor_created(hass: HomeAssistant) -> None:

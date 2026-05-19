@@ -76,7 +76,7 @@ This integration creates the following entities:
 
 - **Vacation Mode** (`switch.vacation_mode`): Manually control vacation mode. Auto-turns off after arriving home (minimum 4 hours).
 
-- **Guest Mode** (`switch.guest_mode`): Auto-activates when nobody is home but occupancy is detected. Configurable turn-on and turn-off delays.
+- **Guest Mode** (`switch.guest_mode`): Auto-activates when nobody is home but occupancy is detected. Configurable turn-on and turn-off delays. When 2 or more occupancy sensors are ON at the same time, guest mode activates immediately and bypasses the turn-on delay. Auto-logic is only active when at least one occupancy sensor is configured; otherwise the switch behaves as a manual toggle. State is restored across Home Assistant restarts.
 
 - **Boost Switches** (per configured climate): For each climate entity configured for boost, a switch is created to toggle boost mode (e.g., `switch.living_room_boost`).
 
