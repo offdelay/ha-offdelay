@@ -8,8 +8,16 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from homeassistant.components.zone import DATA_ZONE_STORAGE_COLLECTION
+from homeassistant.const import (
+    CONF_ICON,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_NAME,
+    CONF_RADIUS,
+)
 from homeassistant.core import HomeAssistant, State
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.data_entry_flow import UnknownHandler
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_loaded_integration
 
@@ -18,11 +26,11 @@ from .const import (
     CONF_CLIMATES_BOOST,
     CONF_PERSONS,
     DOMAIN,
+    HOME_NAME,
+    HOME_ZONE,
     LOGGER,
     PLATFORMS,
-    PROXIMITY_NAME,
     PROXIMITY_TOLERANCE,
-    PROXIMITY_ZONE,
 )
 from .coordinator import OffdelayDataUpdateCoordinator
 from .data import OffdelayConfigEntry, OffdelayData
@@ -42,14 +50,8 @@ async def async_setup_entry(
     Returns:
         bool: True if setup was successful, False otherwise.
 
-    Raises:
-        HomeAssistantError: If zone.home is not configured.
-
     """
-    zone_home: State | None = hass.states.get(PROXIMITY_ZONE)
-    if zone_home is None:
-        msg = "zone.home is not configured. Please configure the Home zone in Home Assistant."
-        raise HomeAssistantError(msg)
+    await _ensure_zone_home(hass)
 
     persons: list[str] = entry.data.get(CONF_PERSONS, [])
     LOGGER.info("Persons configured for proximity: %s", persons)
@@ -62,20 +64,9 @@ async def async_setup_entry(
             LOGGER.info("No device_trackers found, using persons directly")
             device_trackers = persons
 
-        if device_trackers:
-            LOGGER.info("Creating proximity config entry with: %s", device_trackers)
-            await hass.config_entries.flow.async_init(
-                "proximity",
-                context={"source": "user"},
-                data={
-                    "name": PROXIMITY_NAME,
-                    "zone": PROXIMITY_ZONE,
-                    "tracked_entities": device_trackers,
-                    "tolerance": PROXIMITY_TOLERANCE,
-                    "ignored_zones": [],
-                },
-            )
-            LOGGER.info("Proximity config entry created successfully")
+        await _ensure_proximity_entry(hass, device_trackers)
+
+    await _ensure_met_entry(hass)
 
     coordinator = OffdelayDataUpdateCoordinator(hass, entry)
 
@@ -149,6 +140,146 @@ def _get_person_device_trackers(
             unique_trackers.append(dt)
 
     return unique_trackers
+
+
+# Fallback coordinates used when Home Assistant's home location is unset (0.0, 0.0).
+_FALLBACK_LATITUDE = 51.057122734917584
+_FALLBACK_LONGITUDE = 3.720729617352293
+
+
+def _resolve_home_coords(hass: HomeAssistant) -> tuple[float, float]:
+    """Return HA home coords, falling back to Ghent if unset/zero."""
+    latitude = hass.config.latitude
+    longitude = hass.config.longitude
+    if latitude and longitude and (latitude != 0.0 or longitude != 0.0):
+        return latitude, longitude
+    return _FALLBACK_LATITUDE, _FALLBACK_LONGITUDE
+
+
+async def _ensure_zone_home(hass: HomeAssistant) -> None:
+    """Ensure ``zone.home`` exists; auto-create it via the zone storage collection if missing.
+
+    Args:
+        hass: Home Assistant instance
+
+    Returns:
+        None
+
+    """
+    if hass.states.get(HOME_ZONE) is not None:
+        return
+
+    LOGGER.warning("zone.home not configured; auto-creating with default coordinates.")
+
+    latitude, longitude = _resolve_home_coords(hass)
+
+    storage_collection = hass.data.get(DATA_ZONE_STORAGE_COLLECTION)
+    if storage_collection is None:
+        LOGGER.warning("Zone component not yet loaded; skipping zone.home auto-create.")
+        return
+
+    zone_data = {
+        CONF_NAME: HOME_NAME,
+        CONF_LATITUDE: latitude,
+        CONF_LONGITUDE: longitude,
+        CONF_RADIUS: 50,
+        CONF_ICON: "mdi:home",
+    }
+    await storage_collection.async_create_item(zone_data)
+
+
+async def _ensure_proximity_entry(
+    hass: HomeAssistant,
+    device_trackers: list[str],
+) -> None:
+    """Ensure a ``proximity`` config entry exists for this integration.
+
+    Skips creation if any ``proximity`` config entry already exists (domain-only match).
+
+    Args:
+        hass: Home Assistant instance
+        device_trackers: List of device_tracker entity IDs to track
+
+    Returns:
+        None
+
+    """
+    if hass.config_entries.async_entries("proximity"):
+        LOGGER.info("Proximity integration already configured; skipping creation.")
+        return
+
+    if not device_trackers:
+        LOGGER.info("No device_trackers available; skipping proximity creation.")
+        return
+
+    LOGGER.info("Creating proximity config entry with: %s", device_trackers)
+    try:
+        await hass.config_entries.flow.async_init(
+            "proximity",
+            context={"source": "user"},
+            data={
+                "name": HOME_NAME,
+                "zone": HOME_ZONE,
+                "tracked_entities": device_trackers,
+                "tolerance": PROXIMITY_TOLERANCE,
+                "ignored_zones": [],
+            },
+        )
+    except UnknownHandler:
+        LOGGER.warning(
+            "Proximity integration is not available; skipping auto-creation."
+        )
+        return
+    LOGGER.info("Proximity config entry created successfully")
+
+
+async def _ensure_met_entry(hass: HomeAssistant) -> None:
+    """Ensure a ``met`` (Meteorologisk institutt) config entry exists.
+
+    Skips creation if any ``met`` config entry already exists (domain-only match).
+    Uses ``hass.config.elevation`` if set; falls back to ``0``. Sets
+    ``track_home=True`` so Met.no follows ``zone.home``.
+
+    Args:
+        hass: Home Assistant instance
+
+    Returns:
+        None
+
+    """
+    if hass.config_entries.async_entries("met"):
+        LOGGER.info("Met.no integration already configured; skipping creation.")
+        return
+
+    elevation = hass.config.elevation or 0
+
+    zone_state: State | None = hass.states.get(HOME_ZONE)
+    name = (
+        zone_state.attributes.get("friendly_name", HOME_NAME)
+        if zone_state
+        else HOME_NAME
+    )
+
+    LOGGER.info(
+        "Creating Met.no config entry (track_home=True, elevation=%s)", elevation
+    )
+    latitude, longitude = _resolve_home_coords(hass)
+    try:
+        await hass.config_entries.flow.async_init(
+            "met",
+            context={"source": "user"},
+            data={
+                "name": name,
+                "latitude": latitude,
+                "longitude": longitude,
+                "elevation": elevation,
+                "track_home": True,
+            },
+        )
+    except UnknownHandler:
+        LOGGER.warning("Met.no integration is not available; skipping auto-creation.")
+        return
+    LOGGER.info("Met.no config entry created successfully")
 
 
 def _cleanup_stale_boost_entities(

@@ -8,11 +8,10 @@ This custom integration for Home Assistant provides tools to improve the ease of
 
 ## Prerequisites
 
-Before installing, please ensure you have the following set up in your Home Assistant instance:
+This integration auto-configures the dependencies it needs on first setup. You don't need to provision them manually, but they are listed here for transparency:
 
-1.  **Meteorologisk institutt (Met.no) Integration**: This integration relies on a weather provider for forecast data. The [Met.no integration](https://www.home-assistant.io/integrations/met/) is the recommended provider. You will need a weather entity named `weather.forecast_home` or `weather.home`.
-2.  **Zones**: You must create the following [zone](https://www.home-assistant.io/integrations/zone/):
-    *   `zone.home`: Your primary home location.
+1.  **Meteorologisk institutt (Met.no) Integration**: Used as the weather provider for forecast data. If a [Met.no integration](https://www.home-assistant.io/integrations/met/) entry isn't already configured, this integration will automatically create one on first setup, using your Home Assistant home location and `track_home=true`. You will still need a weather entity named `weather.forecast_home` or `weather.home` (Met.no creates this automatically).
+2.  **`zone.home`**: Your primary home [zone](https://www.home-assistant.io/integrations/zone/). If `zone.home` does not yet exist, this integration will automatically create it on first setup using your Home Assistant home coordinates (with `51.057122734917584, 3.720729617352293` as fallback when Home Assistant's home location is unset). The auto-created zone uses a 50&nbsp;m radius and the `mdi:home` icon — you can edit it later from **Settings &rarr; Areas &amp; Zones**.
 
 ## Installation
 
