@@ -116,6 +116,9 @@
             },
             "is_home": {
                 "name": "Is Home"
+            },
+            "guest_mode": {
+                "name": "Guest Mode"
             }
         },
         "switch": {

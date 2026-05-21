@@ -1,4 +1,8 @@
-"""Test the Offdelay night temperature sensor (multi-sensor min logic)."""
+"""Test the Offdelay night temperature sensor (multi-sensor aggregation logic).
+
+Summer night sensor uses MAX (hottest reading wins).
+Winter night sensor uses MIN (coldest reading wins).
+"""
 
 from unittest.mock import AsyncMock, patch
 
@@ -10,6 +14,9 @@ from custom_components.offdelay.const import (
     CONF_SUMMER_NIGHT_MAX_TEMP,
     CONF_SUMMER_NIGHT_MIN_TEMP,
     CONF_SUMMER_NIGHT_TEMP_SENSOR,
+    CONF_WINTER_NIGHT_MAX_TEMP,
+    CONF_WINTER_NIGHT_MIN_TEMP,
+    CONF_WINTER_NIGHT_TEMP_SENSOR,
     DOMAIN,
 )
 
@@ -61,8 +68,8 @@ async def test_single_sensor_mirrors_source(hass: HomeAssistant) -> None:
     assert coordinator.data["summer_night_temp_reading"] == 18.5
 
 
-async def test_multi_sensor_uses_min(hass: HomeAssistant) -> None:
-    """Min of multiple valid sensors is used."""
+async def test_multi_summer_sensor_uses_max(hass: HomeAssistant) -> None:
+    """Summer night: max of multiple valid sensors is used (hottest wins)."""
     hass.states.async_set("sensor.a", "19.0")
     hass.states.async_set("sensor.b", "17.5")
     hass.states.async_set("sensor.c", "18.2")
@@ -76,11 +83,29 @@ async def test_multi_sensor_uses_min(hass: HomeAssistant) -> None:
     entry = await _setup(hass, config)
     coordinator = entry.runtime_data.coordinator
 
-    assert coordinator.data["summer_night_temp_reading"] == 17.5
+    assert coordinator.data["summer_night_temp_reading"] == 19.0
+
+
+async def test_multi_winter_sensor_uses_min(hass: HomeAssistant) -> None:
+    """Winter night: min of multiple valid sensors is used (coldest wins)."""
+    hass.states.async_set("sensor.a", "19.0")
+    hass.states.async_set("sensor.b", "17.5")
+    hass.states.async_set("sensor.c", "18.2")
+
+    config = {
+        **MOCK_CONFIG,
+        CONF_WINTER_NIGHT_TEMP_SENSOR: ["sensor.a", "sensor.b", "sensor.c"],
+        CONF_WINTER_NIGHT_MAX_TEMP: 22.0,
+        CONF_WINTER_NIGHT_MIN_TEMP: 19.5,
+    }
+    entry = await _setup(hass, config)
+    coordinator = entry.runtime_data.coordinator
+
+    assert coordinator.data["winter_night_temp_reading"] == 17.5
 
 
 async def test_partial_unavailable_uses_valid(hass: HomeAssistant) -> None:
-    """Unavailable sensors are skipped; min of remaining valid is used."""
+    """Unavailable sensors are skipped; aggregator runs on remaining valid ones."""
     hass.states.async_set("sensor.a", "unavailable")
     hass.states.async_set("sensor.b", "20.0")
 
@@ -113,8 +138,8 @@ async def test_all_unavailable_no_value_pushed(hass: HomeAssistant) -> None:
     assert coordinator.data.get("summer_night_temp_reading") is None
 
 
-async def test_state_change_updates_min(hass: HomeAssistant) -> None:
-    """Changing one source sensor recalculates min."""
+async def test_summer_state_change_updates_max(hass: HomeAssistant) -> None:
+    """Summer: changing one source sensor recalculates max."""
     hass.states.async_set("sensor.a", "19.0")
     hass.states.async_set("sensor.b", "18.0")
 
@@ -127,9 +152,31 @@ async def test_state_change_updates_min(hass: HomeAssistant) -> None:
     entry = await _setup(hass, config)
     coordinator = entry.runtime_data.coordinator
 
-    assert coordinator.data["summer_night_temp_reading"] == 18.0
+    assert coordinator.data["summer_night_temp_reading"] == 19.0
 
-    hass.states.async_set("sensor.b", "20.0")
+    hass.states.async_set("sensor.b", "21.0")
     await hass.async_block_till_done()
 
-    assert coordinator.data["summer_night_temp_reading"] == 19.0
+    assert coordinator.data["summer_night_temp_reading"] == 21.0
+
+
+async def test_winter_state_change_updates_min(hass: HomeAssistant) -> None:
+    """Winter: changing one source sensor recalculates min."""
+    hass.states.async_set("sensor.a", "19.0")
+    hass.states.async_set("sensor.b", "18.0")
+
+    config = {
+        **MOCK_CONFIG,
+        CONF_WINTER_NIGHT_TEMP_SENSOR: ["sensor.a", "sensor.b"],
+        CONF_WINTER_NIGHT_MAX_TEMP: 22.0,
+        CONF_WINTER_NIGHT_MIN_TEMP: 19.5,
+    }
+    entry = await _setup(hass, config)
+    coordinator = entry.runtime_data.coordinator
+
+    assert coordinator.data["winter_night_temp_reading"] == 18.0
+
+    hass.states.async_set("sensor.b", "16.0")
+    await hass.async_block_till_done()
+
+    assert coordinator.data["winter_night_temp_reading"] == 16.0

@@ -112,6 +112,9 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
         """Initialize with source entity IDs."""
         super().__init__(coordinator, entity_description)
         self._source_entity_ids = list(dict.fromkeys(source_entity_ids))
+        # Summer night: hottest reading wins (max).
+        # Winter night: coldest reading wins (min).
+        self._aggregator = max if entity_description.key.startswith("summer") else min
 
     @property
     def native_value(self) -> float | None:
@@ -138,20 +141,20 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
                 )
             )
 
-    def _compute_min(self) -> float | None:
+    def _aggregate(self) -> float | None:
         values = []
         for eid in self._source_entity_ids:
             state = self.hass.states.get(eid)
             value = parse_float_state(state)
             if value is not None:
                 values.append(value)
-        return min(values) if values else None
+        return self._aggregator(values) if values else None
 
     def _seed_initial_state(self) -> None:
-        """Read the source sensors and forward the min value to the coordinator."""
+        """Read the source sensors and forward the aggregated value to the coordinator."""
         if not self._source_entity_ids:
             return
-        value = self._compute_min()
+        value = self._aggregate()
         if value is None and self._attr_native_value is not None:
             value = float(self._attr_native_value)
         if value is not None:
@@ -160,9 +163,9 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
             )
 
     @callback
-    def _handle_source_state_change(self, event: Event[EventStateChangedData]) -> None:
+    def _handle_source_state_change(self, event: Event[EventStateChangedData]) -> None:  # noqa: ARG002
         """Handle source sensor state changes."""
-        value = self._compute_min()
+        value = self._aggregate()
         if value is None:
             return
         self.coordinator.handle_night_temp_change(self.entity_description.key, value)

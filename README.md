@@ -64,6 +64,9 @@ This integration creates the following entities:
 - **Is Home** (`binary_sensor.is_home`): Indicates if anyone is home.
   - **State**: `on` when at least one person is in the `home` zone, `off` otherwise.
 
+- **Guest Mode** (`binary_sensor.guest_mode`): Mirrors the Guest Mode switch as a binary sensor for use in templates, blueprints, and automations that prefer binary sensors.
+  - **State**: matches `switch.guest_mode` exactly (no extra logic, no delay).
+
 - **Climate Mode Winter** (`binary_sensor.climate_mode_winter`): Indicates if the current climate mode is winter.
 
 - **Climate Mode Summer** (`binary_sensor.climate_mode_summer`): Indicates if the current climate mode is summer.

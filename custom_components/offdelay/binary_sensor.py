@@ -9,6 +9,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
+from homeassistant.const import STATE_ON
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import (
@@ -112,6 +113,9 @@ async def async_setup_entry(
 
     # Zone.home presence sensor
     entities.append(OffdelayHomeBinarySensor(entry))
+
+    # Guest mode helper (mirrors switch.<entry>_guest_mode)
+    entities.append(OffdelayGuestModeHelperBinarySensor(entry))
 
     async_add_entities(entities)
 
@@ -230,3 +234,63 @@ class OffdelayHomeBinarySensor(BinarySensorEntity):
             self._is_on = state is not None and int(state.state) > 0
         except (ValueError, TypeError):
             self._is_on = False
+
+
+# ------------------------------------------------------------------
+# Guest Mode Helper
+# ------------------------------------------------------------------
+
+
+class OffdelayGuestModeHelperBinarySensor(BinarySensorEntity):
+    """Binary sensor mirroring the Guest Mode switch.
+
+    Provides a binary_sensor view of `switch.<entry>_guest_mode` so that
+    blueprints, templates and automations that prefer binary_sensors can
+    consume guest-mode state without depending on the switch domain.
+
+    State is derived purely from the source switch entity - this sensor
+    holds no independent logic and adds no delay.
+    """
+
+    _attr_attribution = ATTRIBUTION
+    _attr_has_entity_name = True
+    _attr_translation_key = "guest_mode"
+    _attr_icon = "mdi:account-question"
+
+    def __init__(self, config_entry: OffdelayConfigEntry) -> None:
+        """Initialize the guest mode helper binary sensor."""
+        self._attr_unique_id = f"{config_entry.entry_id}_guest_mode_helper"
+        self._attr_device_info = DeviceInfo(
+            name="Offdelay",
+            identifiers={(DOMAIN, config_entry.entry_id)},
+            manufacturer="Offdelay",
+            model="Logic Engine",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+        # Source switch entity_id is deterministic: HA derives it from the
+        # switch's translation_key + integration prefix.
+        self._source_entity_id = "switch.offdelay_guest_mode"
+        self._is_on = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return True when the source guest_mode switch is ON."""
+        return self._is_on
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to source switch state changes."""
+        self._update_from_source()
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass, self._source_entity_id, self._async_source_changed
+            )
+        )
+
+    @callback
+    def _async_source_changed(self, event: Event[EventStateChangedData]) -> None:  # noqa: ARG002
+        self._update_from_source()
+        self.async_write_ha_state()
+
+    def _update_from_source(self) -> None:
+        state = self.hass.states.get(self._source_entity_id)
+        self._is_on = state is not None and state.state == STATE_ON

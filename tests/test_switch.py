@@ -404,6 +404,46 @@ async def test_guest_mode_restored_on_but_someone_home_clears_via_eval(
     assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
 
 
+async def test_guest_mode_helper_binary_sensor_mirrors_switch(hass: HomeAssistant):
+    """Helper binary sensor follows the guest_mode switch state instantly."""
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_OCCUPANCY)
+
+    # Both start OFF.
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_OFF
+    assert hass.states.get("binary_sensor.offdelay_guest_mode").state == STATE_OFF
+
+    # Manual switch ON -> helper flips ON.
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": "switch.offdelay_guest_mode"}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get("binary_sensor.offdelay_guest_mode").state == STATE_ON
+
+    # Manual switch OFF -> helper flips OFF.
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": "switch.offdelay_guest_mode"}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get("binary_sensor.offdelay_guest_mode").state == STATE_OFF
+
+
+async def test_guest_mode_helper_follows_auto_activation(hass: HomeAssistant):
+    """Helper binary sensor reflects auto-activated guest mode (timer path)."""
+    hass.states.async_set("zone.home", "0")
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_OFF)
+    await _setup_entry(hass, MOCK_CONFIG_WITH_OCCUPANCY)
+
+    hass.states.async_set("binary_sensor.motion_living_room", STATE_ON)
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=5, seconds=1))
+    await hass.async_block_till_done()
+
+    assert hass.states.get("switch.offdelay_guest_mode").state == STATE_ON
+    assert hass.states.get("binary_sensor.offdelay_guest_mode").state == STATE_ON
+
+
 async def test_proximity_sensor_created(hass: HomeAssistant) -> None:
     """Given persons configured, proximity sensor is created with correct attributes."""
     hass.states.async_set("zone.home", "0")
