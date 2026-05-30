@@ -49,3 +49,7 @@ DATA_CLIMATE_MODE = "climate_mode"
 CLIMATE_MODE_WINTER = "winter"
 CLIMATE_MODE_SUMMER = "summer"
 CLIMATE_MODE_OFF = "off"
+
+# Energy source entity IDs (auto-detected, not configured)
+EVCC_GRID_POWER_ENTITY = "sensor.evcc_grid_power"
+EVCC_PV_POWER_ENTITY = "sensor.evcc_pv_power"

@@ -102,6 +102,21 @@
             },
             "winter_night_temp_reading": {
                 "name": "Winter Night Temp Reading"
+            },
+            "offdelay_grid_consumption_power": {
+                "name": "Grid Consumption Power"
+            },
+            "offdelay_grid_return_power": {
+                "name": "Grid Return Power"
+            },
+            "offdelay_grid_consumption_energy": {
+                "name": "Grid Consumption Energy"
+            },
+            "offdelay_grid_return_energy": {
+                "name": "Grid Return Energy"
+            },
+            "offdelay_solar_energy": {
+                "name": "Solar Energy"
             }
         },
         "binary_sensor": {
