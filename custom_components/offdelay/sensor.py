@@ -18,6 +18,7 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     EventStateChangedData,
     async_track_state_change_event,
@@ -161,10 +162,13 @@ async def async_setup_entry(
                 )
             )
 
-    grid_state = hass.states.get(EVCC_GRID_POWER_ENTITY)
-    pv_state = hass.states.get(EVCC_PV_POWER_ENTITY)
+    registry = er.async_get(hass)
+    has_evcc_entities = (
+        registry.async_get(EVCC_GRID_POWER_ENTITY) is not None
+        and registry.async_get(EVCC_PV_POWER_ENTITY) is not None
+    )
 
-    if grid_state is not None and pv_state is not None:
+    if has_evcc_entities:
         entities.append(
             OffdelayPowerSensor(
                 coordinator=coordinator,
@@ -370,6 +374,10 @@ class OffdelayEnergySensor(OffdelayEntity, RestoreSensor):
                 self._handle_source_change,
             )
         )
+
+        if (power := self._get_effective_power()) is not None:
+            self._last_power = power
+            self._last_update = time.monotonic()
 
     def _get_effective_power(self) -> float | None:
         """Read source entity and apply consumption/return derivation."""

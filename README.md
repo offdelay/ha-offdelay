@@ -58,6 +58,21 @@ This integration creates the following entities:
   - **Unit**: `°C`
   - **Category**: Diagnostic
 
+- **Grid Consumption Power** (`sensor.offdelay_grid_consumption_power`): Tracks imported grid power from `sensor.evcc_grid_power`. Restores its last state after restart and updates automatically when the EVCC source entity becomes available.
+  - **Unit**: `W`
+
+- **Grid Return Power** (`sensor.offdelay_grid_return_power`): Tracks exported grid power from `sensor.evcc_grid_power`. Restores its last state after restart and updates automatically when the EVCC source entity becomes available.
+  - **Unit**: `W`
+
+- **Grid Consumption Energy** (`sensor.offdelay_grid_consumption_energy`): Accumulates imported grid energy from the EVCC grid power source.
+  - **Unit**: `Wh`
+
+- **Grid Return Energy** (`sensor.offdelay_grid_return_energy`): Accumulates exported grid energy from the EVCC grid power source.
+  - **Unit**: `Wh`
+
+- **Solar Energy** (`sensor.offdelay_solar_energy`): Accumulates solar energy from `sensor.evcc_pv_power`.
+  - **Unit**: `Wh`
+
 ### Binary Sensors
 
 - **Is Home** (`binary_sensor.is_home`): Indicates if anyone is home.
