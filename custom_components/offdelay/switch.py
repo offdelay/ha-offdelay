@@ -16,6 +16,7 @@ from homeassistant.components.switch import SwitchEntity, SwitchEntityDescriptio
 from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
@@ -73,6 +74,7 @@ async def async_setup_entry(
             key=f"boost_{climate_id.split('.')[-1]}",
             name=f"{friendly_name} Boost",
             icon="mdi:heat-wave",
+            entity_category=EntityCategory.DIAGNOSTIC,
         )
         entities.append(
             OffdelayBoostSwitch(

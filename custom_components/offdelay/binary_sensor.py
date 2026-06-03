@@ -19,6 +19,8 @@ from homeassistant.helpers.event import (
 
 from .const import (
     ATTRIBUTION,
+    CLIMATE_MODE_SUMMER,
+    CLIMATE_MODE_WINTER,
     CONF_BOOST_SUMMER_TEMP,
     CONF_BOOST_WINTER_TEMP,
     CONF_CLIMATES_BOOST,
@@ -175,12 +177,12 @@ class OffdelayBoostBinarySensor(OffdelayEntity, BinarySensorEntity):
         if not switch_on:
             return False
 
-        summer_mode = self.coordinator.data.get(DATA_CLIMATE_MODE) == "summer"
+        climate_mode = self.coordinator.data.get(DATA_CLIMATE_MODE)
 
         if self._boost_type == "summer":
-            return summer_mode
+            return climate_mode == CLIMATE_MODE_SUMMER
 
-        return not summer_mode
+        return climate_mode == CLIMATE_MODE_WINTER
 
 
 # ------------------------------------------------------------------
