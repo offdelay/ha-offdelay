@@ -30,7 +30,7 @@ from .const import (
     DOMAIN,
 )
 from .entity import OffdelayEntity
-from .helpers import get_climate_friendly_name
+from .helpers import get_climate_friendly_name, get_entity_object_id
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -426,8 +426,8 @@ class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
         """Initialize boost switch for a climate entity."""
         super().__init__(coordinator, entity_description)
         self._climate_entity_id = climate_entity_id
-        climate_object_id = climate_entity_id.rsplit(".", maxsplit=1)[-1]
-        self.entity_id = f"switch.{climate_object_id}_boost"
+        climate_object_id = get_entity_object_id(climate_entity_id)
+        self.entity_id = f"switch.offdelay_{climate_object_id}_boost"
 
     @property
     def is_on(self) -> bool:

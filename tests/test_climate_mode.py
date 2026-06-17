@@ -3,14 +3,25 @@
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.offdelay.const import DATA_CLIMATE_MODE, DOMAIN
 
-from .const import MOCK_CONFIG, MOCK_CONFIG_WITH_NIGHT_SENSORS
+from .const import (
+    MOCK_CONFIG,
+    MOCK_CONFIG_WITH_BOOST_CLIMATES,
+    MOCK_CONFIG_WITH_NIGHT_SENSORS,
+)
+
+BOOST_CLIMATE_1 = "climate.kid_big_bedroom_heatpump"
+BOOST_CLIMATE_2 = "climate.master_bedroom_heatpump"
+BOOST_MODE_SENSOR_1 = "sensor.offdelay_kid_big_bedroom_heatpump_mode"
+BOOST_MODE_SENSOR_2 = "sensor.offdelay_master_bedroom_heatpump_mode"
+EVCC_MODE_SELECT_1 = "select.evcc_kid_big_bedroom_heatpump_mode"
+EVCC_MODE_SELECT_2 = "select.evcc_master_bedroom_heatpump_mode"
 
 
 @pytest.fixture(autouse=True)
@@ -639,3 +650,99 @@ async def test_climate_binary_sensors_created_without_climate_config(
     assert hass.states.get("binary_sensor.offdelay_climate_mode_winter")
     assert hass.states.get("binary_sensor.offdelay_climate_mode_summer")
     assert hass.states.get("binary_sensor.offdelay_climate_mode_winter_summer")
+
+
+async def test_boost_mode_sensor_reports_not_found_when_evcc_entity_missing(
+    hass: HomeAssistant,
+):
+    """Test boost mode sensors show not found when the EVCC mode select is absent."""
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_BOOST_CLIMATES)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(BOOST_MODE_SENSOR_1).state == "not found"  # type: ignore[union-attr]
+    assert hass.states.get(BOOST_MODE_SENSOR_2).state == "not found"  # type: ignore[union-attr]
+
+
+async def test_boost_mode_sensor_mirrors_evcc_select_state(hass: HomeAssistant):
+    """Test boost mode sensors mirror EVCC mode select state changes."""
+    hass.states.async_set(EVCC_MODE_SELECT_1, "pv")
+    hass.states.async_set(EVCC_MODE_SELECT_2, "minpv")
+
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_BOOST_CLIMATES)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(BOOST_MODE_SENSOR_1).state == "pv"  # type: ignore[union-attr]
+    assert hass.states.get(BOOST_MODE_SENSOR_2).state == "minpv"  # type: ignore[union-attr]
+
+    hass.states.async_set(EVCC_MODE_SELECT_1, "now")
+    await hass.async_block_till_done()
+
+    assert hass.states.get(BOOST_MODE_SENSOR_1).state == "now"  # type: ignore[union-attr]
+
+
+async def test_climate_mode_off_turns_all_evcc_mode_selects_off(hass: HomeAssistant):
+    """Test EVCC mode selects are forced to off when climate mode turns off."""
+    hass.states.async_set(EVCC_MODE_SELECT_1, "pv")
+    hass.states.async_set(EVCC_MODE_SELECT_2, "now")
+
+    select_calls: list[dict[str, str]] = []
+
+    async def handle_select_option(service_call: ServiceCall) -> None:
+        service_data = dict(service_call.data)
+        select_calls.append(service_data)
+        hass.states.async_set(service_data["entity_id"], service_data["option"])
+
+    hass.services.async_register("select", "select_option", handle_select_option)
+
+    mock_day = datetime(2026, 4, 24, 14, 0, 0, tzinfo=dt_util.UTC)
+    with (
+        patch("homeassistant.util.dt.now", return_value=mock_day),
+        patch(
+            "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
+            new_callable=AsyncMock,
+            return_value={
+                "weather_max_temp_today": 25,
+                "weather_min_temp_today": 15,
+            },
+        ),
+    ):
+        entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG_WITH_BOOST_CLIMATES)
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        coordinator = entry.runtime_data.coordinator
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert coordinator.data[DATA_CLIMATE_MODE] == "summer"
+
+        hass.states.async_set("sensor.summer_night_temp", "15.0")
+        await hass.async_block_till_done()
+
+        mock_night = datetime(2026, 4, 24, 20, 0, 0, tzinfo=dt_util.UTC)
+        with (
+            patch("homeassistant.util.dt.now", return_value=mock_night),
+            patch(
+                "custom_components.offdelay.coordinator.OffdelayDataUpdateCoordinator._fetch_weather_slice",
+                new_callable=AsyncMock,
+                return_value={
+                    "weather_max_temp_today": 25,
+                    "weather_min_temp_today": 15,
+                },
+            ),
+        ):
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+
+        assert coordinator.data[DATA_CLIMATE_MODE] == "off"
+
+    assert select_calls == [
+        {"entity_id": EVCC_MODE_SELECT_1, "option": "off"},
+        {"entity_id": EVCC_MODE_SELECT_2, "option": "off"},
+    ]
+    assert hass.states.get(EVCC_MODE_SELECT_1).state == "off"  # type: ignore[union-attr]
+    assert hass.states.get(EVCC_MODE_SELECT_2).state == "off"  # type: ignore[union-attr]

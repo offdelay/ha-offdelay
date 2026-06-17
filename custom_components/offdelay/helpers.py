@@ -23,5 +23,15 @@ def get_climate_friendly_name(hass: HomeAssistant, climate_entity_id: str) -> st
         if friendly_name:
             return friendly_name
 
-    climate_name = climate_entity_id.rsplit(".", maxsplit=1)[-1]
+    climate_name = get_entity_object_id(climate_entity_id)
     return climate_name.replace("_", " ").title()
+
+
+def get_entity_object_id(entity_id: str) -> str:
+    """Return the object_id portion of an entity_id."""
+    return entity_id.rsplit(".", maxsplit=1)[-1]
+
+
+def get_evcc_mode_entity_id(climate_entity_id: str) -> str:
+    """Return the EVCC mode select entity_id for a climate entity."""
+    return f"select.evcc_{get_entity_object_id(climate_entity_id)}_mode"

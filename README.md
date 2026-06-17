@@ -58,6 +58,9 @@ This integration creates the following entities:
   - **Unit**: `°C`
   - **Category**: Diagnostic
 
+- **Boost Climate Mode Sensors** (per configured climate): For each climate entity configured for boost, a diagnostic mode sensor is created that mirrors the matching EVCC mode select entity (for example `sensor.offdelay_kid_big_bedroom_heatpump_mode` mirrors `select.evcc_kid_big_bedroom_heatpump_mode`). If no matching EVCC mode entity exists, the sensor state is `not found`.
+  - **Category**: Diagnostic
+
 - **Grid Consumption Power** (`sensor.offdelay_grid_consumption_power`): Tracks imported grid power from `sensor.evcc_grid_power`. Restores its last state after restart and updates automatically when the EVCC source entity becomes available.
   - **Unit**: `W`
 
@@ -95,7 +98,7 @@ This integration creates the following entities:
 
 - **Guest Mode** (`switch.guest_mode`): Auto-activates when nobody is home but occupancy is detected. Configurable turn-on and turn-off delays. When 2 or more occupancy sensors are ON at the same time, guest mode activates immediately and bypasses the turn-on delay. Auto-logic is only active when at least one occupancy sensor is configured; otherwise the switch behaves as a manual toggle. State is restored across Home Assistant restarts.
 
-- **Boost Switches** (per configured climate): For each climate entity configured for boost, a switch is created to toggle boost mode (e.g., `switch.living_room_boost`).
+- **Boost Switches** (per configured climate): For each climate entity configured for boost, a switch is created to toggle boost mode (e.g., `switch.offdelay_living_room_boost`).
 
 ## Blueprints
 

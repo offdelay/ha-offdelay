@@ -25,13 +25,19 @@ from homeassistant.helpers.event import (
 )
 
 from .const import (
+    CONF_CLIMATES_BOOST,
     CONF_SUMMER_NIGHT_TEMP_SENSOR,
     CONF_WINTER_NIGHT_TEMP_SENSOR,
     EVCC_GRID_POWER_ENTITY,
     EVCC_PV_POWER_ENTITY,
 )
 from .entity import OffdelayEntity
-from .helpers import parse_float_state
+from .helpers import (
+    get_climate_friendly_name,
+    get_entity_object_id,
+    get_evcc_mode_entity_id,
+    parse_float_state,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import Event, HomeAssistant
@@ -140,6 +146,7 @@ async def async_setup_entry(
     entities: list[
         OffdelayWeatherSensor
         | OffdelayNightTempSensor
+        | OffdelayBoostModeSensor
         | OffdelayPowerSensor
         | OffdelayEnergySensor
     ] = [
@@ -161,6 +168,21 @@ async def async_setup_entry(
                     source_entity_ids=source_entity_ids,
                 )
             )
+
+    for climate_entity_id in entry.data.get(CONF_CLIMATES_BOOST, []):
+        climate_object_id = get_entity_object_id(climate_entity_id)
+        entities.append(
+            OffdelayBoostModeSensor(
+                coordinator=coordinator,
+                entity_description=SensorEntityDescription(
+                    key=f"boost_{climate_object_id}_mode",
+                    name=(f"{get_climate_friendly_name(hass, climate_entity_id)} Mode"),
+                    icon="mdi:state-machine",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+                climate_entity_id=climate_entity_id,
+            )
+        )
 
     registry = er.async_get(hass)
     has_evcc_entities = (
@@ -265,6 +287,55 @@ class OffdelayNightTempSensor(OffdelayEntity, RestoreSensor):
         if value is None:
             return
         self.coordinator.handle_night_temp_change(self.entity_description.key, value)
+
+
+class OffdelayBoostModeSensor(OffdelayEntity, RestoreSensor):
+    """Diagnostic sensor mirroring the EVCC mode select for a boost climate."""
+
+    _attr_should_poll = False
+
+    def __init__(
+        self,
+        coordinator: OffdelayDataUpdateCoordinator,
+        entity_description: SensorEntityDescription,
+        climate_entity_id: str,
+    ) -> None:
+        """Initialize the EVCC mode mirror sensor."""
+        super().__init__(coordinator, entity_description)
+        climate_object_id = get_entity_object_id(climate_entity_id)
+        self._source_entity_id = get_evcc_mode_entity_id(climate_entity_id)
+        self.entity_id = f"sensor.offdelay_{climate_object_id}_mode"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the mirrored EVCC mode or a fallback value."""
+        return self._attr_native_value  # type: ignore[return-value]
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last value, then subscribe to EVCC mode changes."""
+        if last_sensor_data := await self.async_get_last_sensor_data():
+            self._attr_native_value = last_sensor_data.native_value
+        await super().async_added_to_hass()
+
+        self._update_from_source()
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass,
+                [self._source_entity_id],
+                self._handle_source_change,
+            )
+        )
+
+    @callback
+    def _handle_source_change(self, event: Event[EventStateChangedData]) -> None:  # noqa: ARG002
+        """Handle EVCC mode select state changes."""
+        self._update_from_source()
+        self.async_write_ha_state()
+
+    def _update_from_source(self) -> None:
+        """Mirror the EVCC mode select state or expose not found."""
+        state = self.hass.states.get(self._source_entity_id)
+        self._attr_native_value = "not found" if state is None else state.state
 
 
 class OffdelayWeatherSensor(OffdelayEntity, RestoreSensor):
