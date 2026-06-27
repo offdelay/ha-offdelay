@@ -21,7 +21,6 @@ from homeassistant.data_entry_flow import UnknownHandler
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_loaded_integration
 
-from .blueprint import async_setup_blueprints, async_unload_blueprints
 from .const import (
     CONF_CLIMATES_BOOST,
     CONF_PERSONS,
@@ -34,6 +33,7 @@ from .const import (
 )
 from .coordinator import OffdelayDataUpdateCoordinator
 from .data import OffdelayConfigEntry, OffdelayData
+from .imports import async_setup_imports
 
 
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
@@ -84,8 +84,8 @@ async def async_setup_entry(
 
     _cleanup_stale_boost_entities(hass, entry)
 
-    # Set up blueprints
-    await async_setup_blueprints(hass, DOMAIN)
+    # Set up packaged imports
+    await async_setup_imports(hass, DOMAIN)
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -306,7 +306,6 @@ async def async_unload_entry(
     entry: OffdelayConfigEntry,
 ) -> bool:
     """Handle removal of an entry."""
-    await async_unload_blueprints(hass, DOMAIN)
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

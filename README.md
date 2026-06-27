@@ -81,7 +81,7 @@ This integration creates the following entities:
 - **Is Home** (`binary_sensor.is_home`): Indicates if anyone is home.
   - **State**: `on` when at least one person is in the `home` zone, `off` otherwise.
 
-- **Guest Mode** (`binary_sensor.guest_mode`): Mirrors the Guest Mode switch as a binary sensor for use in templates, blueprints, and automations that prefer binary sensors.
+- **Guest Mode** (`binary_sensor.guest_mode`): Mirrors the Guest Mode switch as a binary sensor for use in templates, automations, and templates that prefer binary sensors.
   - **State**: matches `switch.guest_mode` exactly (no extra logic, no delay).
 
 - **Climate Mode Winter** (`binary_sensor.climate_mode_winter`): Indicates if the current climate mode is winter.
@@ -100,9 +100,16 @@ This integration creates the following entities:
 
 - **Boost Switches** (per configured climate): For each climate entity configured for boost, a switch is created to toggle boost mode (e.g., `switch.offdelay_living_room_boost`).
 
-## Blueprints
+## Imports
 
-This integration comes with pre-made blueprints to help you get started with automations and scripts. Once the integration is installed, these blueprints will be available in your Home Assistant instance.
+This integration comes with pre-made import assets to help you get started with automations, custom integrations, themes, and community resources. Once the integration is installed, these assets will be available in your Home Assistant instance.
+
+On setup, the integration copies packaged assets from `custom_components/offdelay/imports/` into your Home Assistant config directory when their contents have changed:
+
+- Import YAML files from `imports/blueprints-folder/` into `blueprints/automation/offdelay` and `blueprints/script/offdelay`
+- Custom integrations from `imports/custom_components/` into `custom_components/` (existing folders are replaced)
+- Themes from `imports/themes/` into `themes/` (existing folders are replaced)
+- Community frontend resources from `imports/community/` into `www/community/` (existing folders are replaced)
 
 ### Automations
 
@@ -115,13 +122,13 @@ This integration comes with pre-made blueprints to help you get started with aut
 - **Entity Auto Turn Off** (`entity_auto_turn_off_v1`): Turns a switch on, waits a configured duration, then turns it off.
 - **Notifications** (`notification_v1`): Configurable notification delivery.
 
-### How to Find the Blueprints
+### How to Find the Imports
 
 1.  Navigate to **Settings** &rarr; **Automations & Scenes**.
 2.  Select the **Blueprints** tab.
-3.  You will find the blueprints provided by this integration listed here.
+3.  You will find the imported blueprints provided by this integration listed here.
 
-You can then use these blueprints to create new automations or scripts without needing to write any YAML code.
+You can then use these imported blueprints to create new automations or scripts without needing to write any YAML code.
 
 ## Testing
 

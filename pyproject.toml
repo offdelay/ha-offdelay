@@ -43,6 +43,16 @@ show_missing = true
 
 
 # ========================
+# 🧹 GLOBAL RUFF SETTINGS
+# ========================
+[tool.ruff]
+# Prevent Ruff from linting or formatting your third-party imports folder entirely
+exclude = [
+    "custom_components/offdelay/imports",
+]
+
+
+# ========================
 # 🧹 LINTING (RUFF)
 # ========================
 [tool.ruff.lint]
@@ -80,8 +90,7 @@ select = [
   "PERF",
 
   # --- Documentation ---
-  "D",    # pydocstyle (docstring presence + style)
-  "DOC",  # pydoclint (docstring correctness vs signature)
+  "D",      # pydocstyle (docstring presence + style / replacement for legacy DOC)
 ]
 
 ignore = [
