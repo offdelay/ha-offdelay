@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -46,6 +48,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self.data: dict[str, Any] = {}
         self.boost_state: dict[str, bool] = {}  # climate entity_id -> boost active
+        self._weather_retry_listeners: list[Callable[[], None]] = []
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch all coordinator data."""
@@ -254,6 +257,15 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             weather_entity = "weather.home"
 
         if weather_entity is None:
+            if not self._weather_retry_listeners:
+                for eid in ("weather.forecast_home", "weather.home"):
+                    remove = async_track_state_change_event(
+                        self.hass,
+                        [eid],
+                        self._async_weather_entity_appeared,
+                    )
+                    self._weather_retry_listeners.append(remove)
+                    self.config_entry.async_on_unload(remove)
             LOGGER.warning(
                 "No available weather entity found for Offdelay weather data"
             )
@@ -304,3 +316,19 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "weather_max_temp_today": max(window_temps),
             "weather_min_temp_today": min(window_temps),
         }
+
+    @callback
+    def _async_weather_entity_appeared(self, event: Event) -> None:
+        """Retry weather fetch when a tracked weather entity becomes available.
+
+        Registered in :meth:`_fetch_weather_slice` when no weather entity
+        is found during coordinator refresh. Once the entity appears,
+        the listener is removed and a full weather refresh is scheduled.
+        """
+        new_state = event.data.get("new_state")
+        if new_state is None or new_state.state in ("unknown", "unavailable"):
+            return
+        for remove in self._weather_retry_listeners:
+            remove()
+        self._weather_retry_listeners.clear()
+        self.hass.async_create_task(self.refresh_weather())
