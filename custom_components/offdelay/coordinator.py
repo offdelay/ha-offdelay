@@ -120,9 +120,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         weather_max_temp_today = current_data.get("weather_max_temp_today")
         if weather_max_temp_today is None:
-            LOGGER.warning(
-                "weather_max_temp_today is None, keeping current climate mode"
-            )
+            LOGGER.info("weather_max_temp_today is None, keeping current climate mode")
             return {DATA_CLIMATE_MODE: current_mode}
 
         winter_max = self.config_entry.data.get(CONF_WINTER_DAY_MAX_TEMP, 0.0)
@@ -266,9 +264,7 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                     self._weather_retry_listeners.append(remove)
                     self.config_entry.async_on_unload(remove)
-            LOGGER.warning(
-                "No available weather entity found for Offdelay weather data"
-            )
+            LOGGER.info("No available weather entity found for Offdelay weather data")
             return {}
 
         hourly_response: dict[str, Any] | None = await self.hass.services.async_call(
@@ -322,13 +318,14 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Retry weather fetch when a tracked weather entity becomes available.
 
         Registered in :meth:`_fetch_weather_slice` when no weather entity
-        is found during coordinator refresh. Once the entity appears,
-        the listener is removed and a full weather refresh is scheduled.
+        is found during coordinator refresh. Once the entity appears the
+        listener reference list is cleared so this runs only once. Actual
+        listener cleanup is handled by ``config_entry.async_on_unload``.
         """
         new_state = event.data.get("new_state")
         if new_state is None or new_state.state in ("unknown", "unavailable"):
             return
-        for remove in self._weather_retry_listeners:
-            remove()
+        if not self._weather_retry_listeners:
+            return
         self._weather_retry_listeners.clear()
         self.hass.async_create_task(self.refresh_weather())

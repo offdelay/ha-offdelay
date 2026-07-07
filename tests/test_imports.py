@@ -14,6 +14,11 @@ from custom_components.offdelay.const import DOMAIN
 import custom_components.offdelay.imports as imports_module
 
 
+async def _executor_job(func, *args):
+    """Run a sync function in executor (mock — runs inline)."""
+    return func(*args)
+
+
 class _MockConfig:
     def __init__(self, base_path: Path) -> None:
         self._base_path = base_path
@@ -224,7 +229,11 @@ async def test_async_setup_imports_registers_missing_community_resources(
     )
 
     ha_config_path = tmp_path / "ha"
-    hass = SimpleNamespace(config=_MockConfig(ha_config_path), data={})
+    hass = SimpleNamespace(
+        config=_MockConfig(ha_config_path),
+        data={},
+        async_add_executor_job=_executor_job,
+    )
 
     resources = object.__new__(ResourceStorageCollection)
     resources.loaded = True
@@ -252,7 +261,11 @@ async def test_async_setup_imports_skips_existing_community_resources(
     )
 
     ha_config_path = tmp_path / "ha"
-    hass = SimpleNamespace(config=_MockConfig(ha_config_path), data={})
+    hass = SimpleNamespace(
+        config=_MockConfig(ha_config_path),
+        data={},
+        async_add_executor_job=_executor_job,
+    )
 
     resources = object.__new__(ResourceStorageCollection)
     resources.loaded = True
@@ -283,7 +296,11 @@ async def test_async_setup_imports_updates_main_resource_and_removes_extras(
     )
 
     ha_config_path = tmp_path / "ha"
-    hass = SimpleNamespace(config=_MockConfig(ha_config_path), data={})
+    hass = SimpleNamespace(
+        config=_MockConfig(ha_config_path),
+        data={},
+        async_add_executor_job=_executor_job,
+    )
 
     resources = object.__new__(ResourceStorageCollection)
     resources.loaded = True
@@ -327,7 +344,11 @@ async def test_async_setup_imports_replaces_wrong_existing_resource(
     )
 
     ha_config_path = tmp_path / "ha"
-    hass = SimpleNamespace(config=_MockConfig(ha_config_path), data={})
+    hass = SimpleNamespace(
+        config=_MockConfig(ha_config_path),
+        data={},
+        async_add_executor_job=_executor_job,
+    )
 
     resources = object.__new__(ResourceStorageCollection)
     resources.loaded = True
@@ -366,6 +387,7 @@ async def test_async_setup_imports_skips_lovelace_yaml_mode(
     hass = SimpleNamespace(
         config=_MockConfig(ha_config_path),
         data={LOVELACE_DATA: _MockLovelaceData(SimpleNamespace())},
+        async_add_executor_job=_executor_job,
     )
 
     await imports_module.async_setup_imports(hass, DOMAIN)

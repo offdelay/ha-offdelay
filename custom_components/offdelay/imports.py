@@ -159,7 +159,9 @@ async def _async_register_community_resources(hass: HomeAssistant, domain: str) 
         return
 
     community_dir = Path(hass.config.path("www", "community"))
-    resource_urls = _iter_community_resource_urls(community_dir)
+    resource_urls = await hass.async_add_executor_job(
+        _iter_community_resource_urls, community_dir
+    )
     if not resource_urls:
         return
 

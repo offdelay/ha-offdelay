@@ -1,0 +1,2 @@
+# Services are registered by imported sub-components (alarmo, scheduler).
+# This file exists to satisfy hassfest validation.
