@@ -4,6 +4,7 @@ Includes:
 - Guest Mode switch
 - Vacation Mode switch
 - Boost switches for configured climates
+- Hide Header switch (daily 4 AM reset)
 """
 
 from __future__ import annotations
@@ -17,7 +18,11 @@ from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_point_in_time,
+    async_track_state_change_event,
+)
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
@@ -56,11 +61,12 @@ async def async_setup_entry(
     config = dict(entry.data)
     entities: list[SwitchEntity] = []
 
-    # Guest & Vacation modes
+    # Guest & Vacation modes & Hide Header
     entities.extend(
         [
             GuestModeSwitch(entry, config),
             VacationModeSwitch(entry),
+            HideHeaderSwitch(entry),
         ]
     )
 
@@ -442,3 +448,88 @@ class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
     async def async_turn_off(self, **_: object) -> None:
         """Deactivate boost mode for this climate entity."""
         self.coordinator.set_boost_active(self._climate_entity_id, active=False)
+
+
+# ------------------------------------------------------------------
+# Hide Header Switch
+# ------------------------------------------------------------------
+
+
+class HideHeaderSwitch(SwitchEntity, RestoreEntity):
+    """Switch that resets to ON at 4 AM daily.
+
+    This switch defaults to ON (true). At 4 AM every day it is
+    automatically turned back ON, regardless of its current state.
+    The switch has no other side-effects and serves as a simple
+    daily-reset boolean for use in automations and templates.
+    """
+
+    _attr_attribution = ATTRIBUTION
+    _attr_has_entity_name = True
+    _attr_translation_key = "hide_header"
+    _attr_icon = "mdi:eye-off"
+
+    def __init__(self, config_entry: OffdelayConfigEntry) -> None:
+        """Initialize hide header switch."""
+        self._attr_unique_id = f"{config_entry.entry_id}_hide_header"
+        self._attr_device_info = _device_info(config_entry.entry_id)
+        self.entity_id = "switch.offdelay_hide_header"
+        self._is_on = True
+        self._unsub_reset: CALLBACK_TYPE | None = None
+
+    @property
+    def is_on(self) -> bool:
+        """Return True when switch is on."""
+        return self._is_on
+
+    async def async_turn_on(self, **_: object) -> None:
+        """Turn the switch on."""
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **_: object) -> None:
+        """Turn the switch off."""
+        self._is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last state and schedule the daily 4 AM reset."""
+        await super().async_added_to_hass()
+
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            self._is_on = last_state.state == STATE_ON
+
+        self._schedule_next_reset()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Cancel the scheduled reset when the entity is removed."""
+        self._cancel_reset()
+
+    @callback
+    def _async_reset(self, _now: dt.datetime) -> None:
+        """Reset the switch to ON and schedule the next reset."""
+        self._unsub_reset = None
+        if not self._is_on:
+            self._is_on = True
+            self.async_write_ha_state()
+        self._schedule_next_reset()
+
+    def _schedule_next_reset(self) -> None:
+        """Schedule the callback to fire at the next 04:00 local time."""
+        self._cancel_reset()
+
+        now = dt_util.now()
+        next_reset = now.replace(hour=4, minute=0, second=0, microsecond=0)
+        if next_reset <= now:
+            next_reset += timedelta(days=1)
+
+        self._unsub_reset = async_track_point_in_time(
+            self.hass, self._async_reset, next_reset
+        )
+
+    def _cancel_reset(self) -> None:
+        """Cancel a pending reset callback, if any."""
+        if self._unsub_reset:
+            self._unsub_reset()
+            self._unsub_reset = None

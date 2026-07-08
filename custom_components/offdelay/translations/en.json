@@ -142,6 +142,9 @@
             },
             "vacation_mode": {
                 "name": "Vacation Mode"
+            },
+            "hide_header": {
+                "name": "Hide Header"
             }
         }
     }
