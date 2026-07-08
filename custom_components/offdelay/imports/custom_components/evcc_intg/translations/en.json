@@ -1,0 +1,536 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful"
+    },
+    "step": {
+      "user": {
+        "description": "If you need help with the setup, you can find it here: {repo}.\n-- --\n### An evcc server installation is required\n-- --\n__Before__ you can set up and use this integration, you __must have evcc itself installed__!\nThis can be done, for example, by installing the HA _evcc AddOn's_ or by installing evcc in a separate Docker container or on another server in your network.\nPlease only install the integration if you know the URL of your evcc server – that is, the URL you enter in your browser to directly access the evcc web interface.\n-- --\nTherefore, you must enter the IP address and port of your evcc server here (and not the IP address and port of your Home Assistant server)!",
+        "data": {
+          "host": "Your local evcc-Server URL (including the port)",
+          "password": "Admin Password for the evcc-Server (optional)",
+          "use_websocket": "Use WebSocket connection",
+          "scan_interval": "Polling Interval in seconds [min: 5sec]",
+          "include_evcc": "Include the prefix '[evcc]' in all sensor 'friendly names'",
+          "extended_vehicle_data": "Collect extended Vehicle data from evcc configuration",
+          "extended_vehicle_data_interval": "Extended Vehicle Data Polling Interval in seconds [check Warning]",
+          "extended_meter_data": "Collect Meter data from evcc configuration",
+          "extended_meter_data_interval": "Meter Data Polling Interval in seconds",
+          "purge_all_devices": "Remove an recreate all Devices"
+        },
+        "data_description": {
+          "use_websocket": "The WebSocket connection ensures that the sensor data will be updated more or less instantly as soon as it's changing in evcc. When enabled the polling interval (below) will be ignored.",
+          "scan_interval": "When you use the WebSocket connection then the polling interval has no functionality.",
+          "password": "Providing your evcc admin password is __optional__ and only necessary for advanced integration features. If you are unsure, leave the field empty!\nYou can add the password anytime later if you decide you want to use the advanced features (e.g., restarting the evcc-server from HA).\n\nWhen you want to __delete__ your current password, please enter a __SPACE__!",
+          "extended_vehicle_data": "Access to the evcc configuration API required (specified admin password). When enabled, the integration will also collect additional vehicle data such as State of Charge, Range, Odometer readings or SOC for each configured vehicle.\nBy default (without having this option activated) this meta data is only available in this integration for vehicles connected to a evcc loadpoint.\n\n**Warning**: Retrieving extended vehicle data _may_ result in evcc fetching data directly from your vehicle during every update interval. Depending on your vehicle manufacturer's API design [like the _Hyundai Bluelink (EU)_], this could lead to the depletion of the 12V battery system or can result in additional costs, if the vehicle API has a rate limit (like Testa). So use with care!",
+          "extended_vehicle_data_interval": "When you have enabled the option '_Collect extended Vehicle data from evcc configuration_' then you can specify the polling interval in seconds which will be usd to request the extended vehicle data from the evcc configuration (please check the additional **Warning** above). The default value is 3600 seconds (1 hour).",
+          "extended_meter_data": "Access to the evcc configuration API required (specified admin password). When enabled, the integration will also collect additional meter data such as Power, Energy, Phase Currents, Phase Voltages, SOC/temperatures for each configured meter.",
+          "extended_meter_data_interval": "When you have enabled the option '_Collect Meter data from evcc configuration_' then you can specify the polling interval in seconds which will be used to request the additional meter data from evcc. The default value is 3600 seconds (1 hour).",
+          "purge_all_devices": "This may be necessary if you have orphaned device entries in your HA. This setting (checkbox) will be reset automatically."
+        }
+      }
+    },
+    "error": {
+      "auth": "You HA instance could not connect to an evcc-Server under the specified URL.",
+      "pwd": "The specified admin password you entered seams to be incorrect."
+    }
+  },
+  "services": {
+    "set_loadpoint_plan": {
+      "name": "Set a departure plan for a loadpoint [Energy (kWh)]",
+      "description": "Charging plan only works in solar mode. The configured CO₂ limit of NaN g will be ignored during this period.",
+      "fields": {
+        "startdate": {"name": "Departure", "description": "Please specify the date and time you want to depart (seconds will be ignored)"},
+        "loadpoint": {"name": "Loadpoint ID", "description": "A number starting from 1...n (where 1'st your first configured loadpoint)"},
+        "energy": {"name": "Charging goal", "description": "Target energy"}
+      }
+    },
+    "set_vehicle_plan": {
+      "name": "Set a departure plan for a vehicle [SOC (%)]",
+      "description": "Charging plan only works in solar mode. The configured CO₂ limit of NaN g will be ignored during this period.",
+      "fields": {
+        "startdate": {"name": "Departure", "description": "Please specify the date and time you want to depart (seconds will be ignored)"},
+        "vehicle": {"name": "Vehicle name/ID", "description": "Enter the vehicle name from your evcc configuration (e.g.: vehicle_1 or db:7)"},
+        "soc": {"name": "Charging goal", "description": "Target state of charge"},
+        "precondition": {"name": "Preconditioning in Seconds", "description": "Duration for preconditioning in seconds (900s = 15min, 1200s = 20min, etc.)"}
+      }
+    },
+    "del_loadpoint_plan": {
+      "name": "Delete a departure plan for a loadpoint [Energy (kWh)]",
+      "description": "Delete a existing Charging plan for a Loadpoint",
+      "fields": {
+        "loadpoint": {"name": "Loadpoint ID", "description": "A number starting from 1...n (where 1'st your first configured loadpoint)"}
+      }
+    },
+    "del_vehicle_plan": {
+      "name": "Delete a departure plan for a vehicle [SOC (%)]",
+      "description": "Delete a existing Charging plan for a Vehicle",
+      "fields": {
+        "vehicle": {"name": "Vehicle name/ID", "description": "Enter the vehicle name from your evcc configuration (e.g.: vehicle_1 or db:7)"}
+      }
+    }
+
+  },
+  "entity": {
+    "binary_sensor": {
+      "charging": {"name": "Charging"},
+      "connected": {"name": "Connected"},
+      "enabled": {"name": "Enabled"},
+      "smartcostactive": {"name": "Smart Grid Charging"},
+      "smartfeedinpriorityactive": {"name": "Smart Feedin limit"},
+      "vehicledetectionactive": {"name": "Vehicle detection"},
+      "batterygridchargeactive": {"name": "Home-Battery: grid charging"},
+      "vehicleclimateractive": {"name": "Vehicle Air Conditioning"},
+      "vehiclewelcomeactive": {"name": "Vehicle Welcome function"},
+      "planactive": {"name": "Plan activated"},
+      "planactivealt": {"name": "Plan activated (alt)"},
+      "circuits_dimmed": {"name": "Load Management dimmed"},
+      "circuits_curtailed": {"name": "Load Management curtailed"}
+    },
+    "button": {
+      "evcc_shutdown": {"name": "Server shutdown"},
+      "vehicleplansdelete": {"name": "Charging plan: Delete Departure (Vehicle/SOC)"},
+      "plandelete": {"name": "Charging plan: Delete Departure (Loadpoint/Energy)"},
+      "detectvehicle": {"name": "Start vehicle detection"},
+      "smartcostlimit": {"name": "@@@ Limit remove"},
+      "smartfeedinprioritylimit": {"name": "@@@ Feedin limit remove"}
+    },
+    "number": {
+      "limitsoc": {"name": "Default Charging limit (SOC)"},
+      "limitenergy": {"name": "Default Charging limit (Energy)"},
+      "enablethreshold": {"name": "Enable threshold"},
+      "disablethreshold": {"name": "Disable threshold"},
+      "residualpower": {"name": "Residual power"},
+      "smartcostlimit_co2": {"name": "CO₂ limit ≤"},
+      "smartcostlimit": {"name": "@@@ limit ≤"},
+      "smartfeedinprioritylimit_co2": {"name": "CO₂ Feedin limit ≤"},
+      "smartfeedinprioritylimit": {"name": "@@@ Feedin limit ≤"},
+      "batterygridchargelimit": {"name": "Home-Battery: grid charging @@@ limit ≤"},
+      "enabledelay": {"name": "Delay Enable"},
+      "disabledelay": {"name": "Delay Disable"},
+      "priority": {"name": "Priority"}
+    },
+    "select": {
+      "batterymode": {
+        "name": "Battery mode (auto-reset after 60 sec)",
+        "state": {
+          "null": "delete",
+          "unknown": "unknown",
+          "normal": "normal",
+          "hold": "lock discharge",
+          "charge": "charge",
+          "holdcharge": "lock charge"
+        }
+      },
+      "prioritysoc": {
+        "name": "Home-Battery: Home has priority",
+        "state": {
+          "0": "---",
+          "5": "if below 5 %",
+          "10": "if below 10 %",
+          "15": "if below 15 %",
+          "20": "if below 20 %",
+          "25": "if below 25 %",
+          "30": "if below 30 %",
+          "35": "if below 35 %",
+          "40": "if below 40 %",
+          "45": "if below 45 %",
+          "50": "if below 50 %",
+          "55": "if below 55 %",
+          "60": "if below 60 %",
+          "65": "if below 65 %",
+          "70": "if below 70 %",
+          "75": "if below 75 %",
+          "80": "if below 80 %",
+          "85": "if below 85 %",
+          "90": "if below 90 %",
+          "95": "if below 95 %",
+          "100": "if below 100 %"
+        }
+      },
+      "buffersoc": {
+        "name": "Home-Battery: Vehicle first",
+        "state": {
+          "5": "when above 5 %",
+          "10": "when above 10 %",
+          "15": "when above 15 %",
+          "20": "when above 20 %",
+          "25": "when above 25 %",
+          "30": "when above 30 %",
+          "35": "when above 35 %",
+          "40": "when above 40 %",
+          "45": "when above 45 %",
+          "50": "when above 50 %",
+          "55": "when above 55 %",
+          "60": "when above 60 %",
+          "65": "when above 65 %",
+          "70": "when above 70 %",
+          "75": "when above 75 %",
+          "80": "when above 80 %",
+          "85": "when above 85 %",
+          "90": "when above 90 %",
+          "95": "when above 95 %",
+          "100": "when at 100 %"
+        }
+      },
+      "bufferstartsoc": {
+        "name": "Home-Battery: Support vehicle charging",
+        "state": {
+          "5": "when above 5 %",
+          "10": "when above 10 %",
+          "15": "when above 15 %",
+          "20": "when above 20 %",
+          "25": "when above 25 %",
+          "30": "when above 30 %",
+          "35": "when above 35 %",
+          "40": "when above 40 %",
+          "45": "when above 45 %",
+          "50": "when above 50 %",
+          "55": "when above 55 %",
+          "60": "when above 60 %",
+          "65": "when above 65 %",
+          "70": "when above 70 %",
+          "75": "when above 75 %",
+          "80": "when above 80 %",
+          "85": "when above 85 %",
+          "90": "when above 90 %",
+          "95": "when above 95 %",
+          "100": "when at 100 %",
+          "0": "charge only with enough surplus"
+        }
+      },
+      "batteryboostlimit": {
+        "name": "Boost from Home-Battery Limit",
+        "state": {
+          "0": "till 0 %",
+          "5": "till 5 %",
+          "10": "till 10 %",
+          "15": "till 15 %",
+          "20": "till 20 %",
+          "25": "till 25 %",
+          "30": "till 30 %",
+          "35": "till 35 %",
+          "40": "till 40 %",
+          "45": "till 45 %",
+          "50": "till 50 %",
+          "55": "till 55 %",
+          "60": "till 60 %",
+          "65": "till 65 %",
+          "70": "till 70 %",
+          "75": "till 75 %",
+          "80": "till 80 %",
+          "85": "till 85 %",
+          "90": "till 90 %",
+          "95": "till 95 %",
+          "100": "deactivated"
+        }
+      },
+      "vehiclename": {
+        "name": "Vehicle",
+        "state": {
+          "null": "-None-",
+          "vehicle_1": "Vehicle 1",
+          "vehicle_2": "Vehicle 2",
+          "vehicle_3": "Vehicle 3",
+          "vehicle_4": "Vehicle 4",
+          "vehicle_5": "Vehicle 5",
+          "vehicle_6": "Vehicle 6",
+          "vehicle_7": "Vehicle 7",
+          "vehicle_8": "Vehicle 8",
+          "vehicle_9": "Vehicle 9",
+          "vehicle_10": "Vehicle 10",
+          "vehicle_11": "Vehicle 11",
+          "vehicle_12": "Vehicle 12",
+          "vehicle_13": "Vehicle 13",
+          "vehicle_14": "Vehicle 14",
+          "vehicle_15": "Vehicle 15",
+          "vehicle_16": "Vehicle 16",
+          "vehicle_17": "Vehicle 17",
+          "vehicle_18": "Vehicle 18",
+          "vehicle_19": "Vehicle 19",
+          "vehicle_20": "Vehicle 20"
+        }
+      },
+      "limitsoc": {
+        "name": "Charging plan: Arrival default limit",
+        "state": {
+          "0": "---",
+          "5": "5 %",
+          "10": "10 %",
+          "15": "15 %",
+          "20": "20 %",
+          "25": "25 %",
+          "30": "30 %",
+          "35": "35 %",
+          "40": "40 %",
+          "45": "45 %",
+          "50": "50 %",
+          "55": "55 %",
+          "60": "60 %",
+          "65": "65 %",
+          "70": "70 %",
+          "75": "75 %",
+          "80": "80 %",
+          "85": "85 %",
+          "90": "90 %",
+          "95": "95 %",
+          "100": "100 %"
+        }
+      },
+      "minsoc": {
+        "name": "Charging plan: Arrival Min. charge %",
+        "state": {
+          "0": "---",
+          "5": "5 %",
+          "10": "10 %",
+          "15": "15 %",
+          "20": "20 %",
+          "25": "25 %",
+          "30": "30 %",
+          "35": "35 %",
+          "40": "40 %",
+          "45": "45 %",
+          "50": "50 %",
+          "55": "55 %",
+          "60": "60 %",
+          "65": "65 %",
+          "70": "70 %",
+          "75": "75 %",
+          "80": "80 %",
+          "85": "85 %",
+          "90": "90 %",
+          "95": "95 %",
+          "100": "100 %"
+        }
+      },
+      "mode": {
+        "name": "Modus",
+        "state": {
+          "off": "Off",
+          "pv": "Solar",
+          "minpv": "Min+Solar",
+          "now": "Fast"
+        }
+      },
+      "phasesconfigured": {
+        "name": "Charging Current Phases",
+        "state": {
+          "0": "auto-switching",
+          "1": "1 phase",
+          "3": "3 phase"
+        }
+      },
+      "phasesconfigured_fixed": {
+        "name": "Charging Current Phases (How is your charger connected?)",
+        "state": {
+          "1": "1 phase",
+          "3": "3 phase"
+        }
+      },
+      "mincurrent": {
+        "name": "Charging Current Min."
+      },
+      "maxcurrent": {
+        "name": "Charging Current Max."
+      },
+      "planstrategyprecondition": {
+        "name": "Charging plan: Late charging",
+        "state": {
+          "0": "No",
+          "900": "15 minutes",
+          "1800": "30 minutes",
+          "3600": "1 hour",
+          "7200": "2 hours",
+          "604800": "All"
+        }
+      }
+    },
+    "sensor": {
+      "chargecurrent": {"name": "Charge current"},
+      "chargecurrents_0": {"name": "Charge current P1"},
+      "chargecurrents_1": {"name": "Charge current P2"},
+      "chargecurrents_2": {"name": "Charge current P3"},
+      "chargevoltages_0": {"name": "Charge voltage P1"},
+      "chargevoltages_1": {"name": "Charge voltage P2"},
+      "chargevoltages_2": {"name": "Charge voltage P3"},
+      "chargeduration": {"name": "Charge duration"},
+      "chargeremainingduration": {"name": "Charge remaining time"},
+      "chargepower": {"name": "Charge power"},
+      "chargetotalimport": {"name": "Grid imported"},
+      "chargedenergy": {"name": "Charge energy"},
+      "chargeremainingenergy": {"name": "Charge energy remaining"},
+
+      "connectedduration": {"name": "Connected duration"},
+
+      "effectivelimitsoc": {"name": "Effective Charging limit (SOC)"},
+      "vehiclelimitsoc": {"name": "Vehicle Charging limit"},
+
+      "phaseaction": {"name": "Phases activity [CODE]"},
+      "phaseaction_value": {"name": "Phases activity"},
+      "phaseremaining": {"name": "Phases remaining"},
+      "phasesactive": {"name": "Phases in use"},
+      "phasesenabled": {"name": "Phases activated"},
+
+      "sessionco2perkwh": {"name": "Session CO₂/kWh"},
+      "sessionenergy": {"name": "Session energy"},
+      "sessionprice": {"name": "Session price"},
+      "sessionpriceperkwh": {"name": "Session @@@/kWh"},
+      "sessionsolarpercentage": {"name": "Session Solar usage"},
+
+      "vehicleodometer": {"name": "Vehicle odometer"},
+      "vehiclerange": {"name": "Vehicle range"},
+      "vehiclesoc": {"name": "Vehicle charge"},
+
+      "vehicleplanssoc": {"name": "Charging plan: Departure charging goal (SOC)"},
+      "vehicleplanstime": {"name": "Charging plan: Departure time (SOC)"},
+      "planenergy": {"name": "Charging plan: Departure charging goal (Energy)"},
+      "plantime": {"name": "Charging plan: Departure time (Energy)"},
+
+      "effectiveplansoc": {"name": "Effective Plan: Departure charging goal (SOC)"},
+      "effectiveplantime": {"name": "Effective Plan: Departure time (SOC)"},
+      "planprojectedstart": {"name": "Plan: Start (projected)"},
+      "planprojectedend": {"name": "Plan: End (projected)"},
+
+      "auxpower": {"name": "Power AUX"},
+      "batterycapacity": {"name": "Battery capacity"},
+      "batteryenergy": {"name": "Battery energy"},
+      "batterymode": {"name": "Battery mode [CODE]"},
+      "batterymode_value": {"name": "Battery mode"},
+      "batterypower": {"name": "Power battery"},
+      "battery_0_power": {"name": "Power Battery 1"},
+      "battery_1_power": {"name": "Power Battery 2"},
+      "battery_2_power": {"name": "Power Battery 3"},
+      "battery_3_power": {"name": "Power Battery 4"},
+      "batterysoc": {"name": "Battery SOC"},
+      "battery_0_soc": {"name": "Battery SOC 1"},
+      "battery_1_soc": {"name": "Battery SOC 2"},
+      "battery_2_soc": {"name": "Battery SOC 3"},
+      "battery_3_soc": {"name": "Battery SOC 4"},
+      "gridcurrents_0": {"name": "Grid Current P1"},
+      "gridcurrents_1": {"name": "Grid Current P2"},
+      "gridcurrents_2": {"name": "Grid Current P3"},
+      "gridpower": {"name": "Power Grid"},
+      "homepower": {"name": "Power Home"},
+      "pvpower": {"name": "Power Solar"},
+      "pv_0_power": {"name": "Power Solar 1"},
+      "pv_1_power": {"name": "Power Solar 2"},
+      "pv_2_power": {"name": "Power Solar 3"},
+      "pv_3_power": {"name": "Power Solar 4"},
+      "pvenergy": {"name": "Energy Solar"},
+      "pv_0_energy": {"name": "Energy Solar 1"},
+      "pv_1_energy": {"name": "Energy Solar 2"},
+      "pv_2_energy": {"name": "Energy Solar 3"},
+      "pv_3_energy": {"name": "Energy Solar 4"},
+
+      "tariffgrid":           {"name": "Costs Grid [Site]"},
+      "tariffpricehome":      {"name": "Costs Usage [Site]"},
+      "tariffco2":            {"name": "Costs CO² [Site]"},
+      "tariffco2home":        {"name": "Costs CO² Usage [Site]"},
+      "tariffco2loadpoints":  {"name": "Costs CO² Loadpoints [Site]"},
+      "tarifffeedin":         {"name": "Costs Feedin [Site]"},
+      "tariffpriceloadpoints":{"name": "Costs Loadpoints [Site]"},
+      "tariffsolar":          {"name": "Solar Prognoses [Site]"},
+
+      "stattotalsolarpercentage": {"name": "Statistics: Total Solar"},
+      "stattotalsolarkwhtemplate": {"name": "Statistics: Total Solar energy"},
+      "stattotalchargedkwh": {"name": "Statistics: Total Charge energy"},
+      "stattotalavgprice": {"name": "Statistics: Total Ø Price"},
+      "stattotalavgco2": {"name": "Statistics: Total Ø CO₂"},
+      "statthisyearsolarpercentage": {"name": "Statistics: This year Solar"},
+      "statthisyearsolarkwhtemplate": {"name": "Statistics: This year Solar energy"},
+      "statthisyearchargedkwh": {"name": "Statistics: This year Charge energy"},
+      "statthisyearavgprice": {"name": "Statistics: This year Ø Price"},
+      "statthisyearavgco2": {"name": "Statistics: This year Ø CO₂"},
+      "stat365solarpercentage": {"name": "Statistics: Last 365 days Solar"},
+      "stat365solarkwhtemplate": {"name": "Statistics: Last 365 days Solar energy"},
+      "stat365chargedkwh": {"name": "Statistics: Last 365 days Charge energy"},
+      "stat365avgprice": {"name": "Statistics: Last 365 days Ø Price"},
+      "stat365avgco2": {"name": "Statistics: Last 365 days Ø CO₂"},
+      "stat30solarpercentage": {"name": "Statistics: Last 30 days Solar"},
+      "stat30solarkwhtemplate": {"name": "Statistics: Last 30 days Solar energy"},
+      "stat30chargedkwh": {"name": "Statistics: Last 30 days Charge energy"},
+      "stat30avgprice": {"name": "Statistics: Last 30 days Ø Price"},
+      "stat30avgco2": {"name": "Statistics: Last 30 days Ø CO₂"},
+
+      "tariff_api_solar": {"name": "Solar Prognoses [Tariff-API]"},
+      "tariff_api_grid": {"name": "Grid Tariffs [Tariff-API]"},
+      "tariff_api_feedin": {"name": "Feedin Tariffs [Tariff-API]"},
+      "tariff_api_planner": {"name": "Planner Tariffs [Tariff-API]"},
+      "forecast_solar": {"name": "Solar Prognoses"},
+      "forecast_grid": {"name": "Grid Tariffs"},
+      "forecast_feedin": {"name": "Feedin Tariffs"},
+      "forecast_planner": {"name": "Planner Tariffs"},
+
+      "pvaction": {"name": "PV Action [CODE]"},
+      "pvaction_value": {"name": "PV Action"},
+      "pvremaining": {"name": "PV Remaining"},
+
+      "charging_sessions": {"name": "Charging Sessions"},
+      "charging_sessions_vehicles": {"name": "Charging Sessions: #Vehicles"},
+      "charging_sessions_vehicle_cost": {"name": "Charging Sessions: Costs [Veh]"},
+      "charging_sessions_vehicle_chargedenergy": {"name": "Charging Sessions: Energy [Veh]"},
+      "charging_sessions_vehicle_chargeduration": {"name": "Charging Sessions: Duration [Veh]"},
+      "charging_sessions_loadpoints": {"name": "Charging Sessions: #Loadpoints"},
+      "charging_sessions_loadpoint_cost": {"name": "Charging Sessions: Costs [LP]"},
+      "charging_sessions_loadpoint_chargedenergy": {"name": "Charging Sessions: Energy [LP]"},
+      "charging_sessions_loadpoint_chargeduration": {"name": "Charging Sessions: Duration [LP]"},
+
+      "evopt_time_series_dt":  {"name": "Optimizer: Timeseries Time"},
+      "evopt_battery_0_charging_power": {"name": "Optimizer: Charging Energy"},
+      "evopt_battery_0_discharging_power": {"name": "Optimizer: Discharging Energy"},
+      "evopt_battery_0_charged_total": {"name": "Optimizer: Total Energy Stored"},
+      "evopt_battery_1_charging_power": {"name": "Optimizer BAT II: Charging Energy"},
+      "evopt_battery_1_discharging_power": {"name": "Optimizer BAT II: Discharging Energy"},
+      "evopt_battery_1_charged_total": {"name": "Optimizer BAT II: Total Energy Stored"},
+      "evopt_battery_2_charging_power": {"name": "Optimizer BAT III: Charging Energy"},
+      "evopt_battery_2_discharging_power": {"name": "Optimizer BAT III: Discharging Energy"},
+      "evopt_battery_2_charged_total": {"name": "Optimizer BAT III: Total Energy Stored"},
+      "evopt_battery_3_charging_power": {"name": "Optimizer BAT IV: Charging Energy"},
+      "evopt_battery_3_discharging_power": {"name": "Optimizer BAT IV: Discharging Energy"},
+      "evopt_battery_3_charged_total": {"name": "Optimizer BAT IV: Total Energy Stored"},
+
+      "circuits_power": {"name": "Load Management Power"},
+      "circuits_current": {"name": "Load Management Current"},
+
+      "configvehicle_soc": {"name": "Charge"},
+      "configvehicle_limitsoc": {"name": "Charge Limit"},
+      "configvehicle_odometer": {"name": "Odometer"},
+      "configvehicle_range": {"name": "Range"},
+
+      "configmeter_power": {"name": "Power"},
+      "configmeter_energy": {"name": "Energy"},
+      "configmeter_soc": {"name": "Charge"},
+      "configmeter_temp": {"name": "Temperature"},
+      "configmeter_phasecurrents_0": {"name": "Current P1"},
+      "configmeter_phasecurrents_1": {"name": "Current P2"},
+      "configmeter_phasecurrents_2": {"name": "Current P3"},
+      "configmeter_phasevoltages_0": {"name": "Voltage P1"},
+      "configmeter_phasevoltages_1": {"name": "Voltage P2"},
+      "configmeter_phasevoltages_2": {"name": "Voltage P3"},
+      "configmeter_phasepowers_0": {"name": "Power P1"},
+      "configmeter_phasepowers_1": {"name": "Power P2"},
+      "configmeter_phasepowers_2": {"name": "Power P3"}
+    },
+    "switch": {
+      "batterydischargecontrol": {"name": "Home-Battery: discharge lock"},
+      "batteryboost": {"name": "Boost from Home-Battery"},
+      "planstrategycontinuous": {"name": "Charging plan: Optimization",
+        "state": {
+          "on": "Continuous",
+          "off": "Most favorable"
+        }
+      },
+      "repeating_plan_2": {"name": "Charging plan 2 (repetitive)"},
+      "repeating_plan_3": {"name": "Charging plan 3 (repetitive)"},
+      "repeating_plan_4": {"name": "Charging plan 4 (repetitive)"},
+      "repeating_plan_5": {"name": "Charging plan 5 (repetitive)"},
+      "repeating_plan_6": {"name": "Charging plan 6 (repetitive)"},
+      "repeating_plan_7": {"name": "Charging plan 7 (repetitive)"},
+      "repeating_plan_8": {"name": "Charging plan 8 (repetitive)"},
+      "repeating_plan_9": {"name": "Charging plan 9 (repetitive)"},
+      "repeating_plan_10": {"name": "Charging plan 10 (repetitive)"}
+    }
+  }
+}
