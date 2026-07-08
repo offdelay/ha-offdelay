@@ -67,13 +67,13 @@ def test_copy_import_assets_to_ha_config(tmp_path: Path, monkeypatch) -> None:
     source_imports = _prepare_source_imports(tmp_path, monkeypatch)
 
     # Prepare import files structure
-    (source_imports / "blueprints-folder" / "automation" / DOMAIN).mkdir(parents=True)
-    (source_imports / "blueprints-folder" / "script" / DOMAIN).mkdir(parents=True)
+    (source_imports / "blueprints" / "automation" / DOMAIN).mkdir(parents=True)
+    (source_imports / "blueprints" / "script" / DOMAIN).mkdir(parents=True)
     (
-        source_imports / "blueprints-folder" / "automation" / DOMAIN / "automation.yaml"
+        source_imports / "blueprints" / "automation" / DOMAIN / "automation.yaml"
     ).write_text("description: Test")
     _write_file(
-        source_imports / "blueprints-folder" / "script" / DOMAIN / "script.yaml",
+        source_imports / "blueprints" / "script" / DOMAIN / "script.yaml",
         "script: true\n",
     )
     _write_file(
@@ -156,11 +156,7 @@ def test_copy_imports_skips_unchanged_assets(tmp_path: Path, monkeypatch) -> Non
     """Unchanged import assets are left untouched on repeated setup."""
     source_imports = _prepare_source_imports(tmp_path, monkeypatch)
     _write_file(
-        source_imports
-        / "blueprints-folder"
-        / "automation"
-        / DOMAIN
-        / "automation.yaml",
+        source_imports / "blueprints" / "automation" / DOMAIN / "automation.yaml",
         "description: same\n",
     )
     _write_file(

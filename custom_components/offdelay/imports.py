@@ -72,7 +72,7 @@ def _directories_match(
 
 def _resolve_import_files_source(integration_imports_dir: Path) -> Path | None:
     """Resolve the import file source directory under imports."""
-    source = integration_imports_dir / "blueprints-folder"
+    source = integration_imports_dir / "blueprints"
     if source.is_dir():
         return source
     return None
