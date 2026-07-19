@@ -132,6 +132,9 @@
             "is_home": {
                 "name": "Is Home"
             },
+            "is_away": {
+                "name": "Is Away"
+            },
             "guest_mode": {
                 "name": "Guest Mode"
             }
