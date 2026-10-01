@@ -10,11 +10,8 @@ from homeassistant.helpers import selector
 import voluptuous as vol
 
 from .const import (
-    CONF_BOOST_SUMMER_TEMP,
-    CONF_BOOST_WINTER_TEMP,
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
-    CONF_CLIMATES_BOOST,
     CONF_GUEST_TURN_OFF_DELAY,
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
@@ -32,7 +29,7 @@ from .const import (
 
 
 class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Offdelay (Climate -> Presence -> Energy steps)."""
+    """Config flow for Offdelay (Climate -> Presence steps)."""
 
     VERSION = 1
 
@@ -75,7 +72,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             menu_options=[
                 "reconfigure_climate",
                 "reconfigure_presence",
-                "reconfigure_energy",
             ],
         )
 
@@ -119,23 +115,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     # -------------------------------------------------------------
-    # Reconfigure -- Energy group
-    # -------------------------------------------------------------
-
-    async def async_step_reconfigure_energy(
-        self,
-        user_input: dict | None = None,
-    ) -> config_entries.ConfigFlowResult:
-        """Edit only the Energy group during reconfigure."""
-        if user_input is not None:
-            return self._async_save_reconfigure(user_input)
-
-        return self.async_show_form(
-            step_id="reconfigure_energy",
-            data_schema=self._energy_schema(self._data),
-        )
-
-    # -------------------------------------------------------------
     # Presence step (shared between setup and reconfigure)
     # -------------------------------------------------------------
 
@@ -146,32 +125,11 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the Presence step (guest mode, persons, occupancy)."""
         if user_input is not None:
             self._data.update(user_input)
-            return await self.async_step_energy()
+            return self.async_create_entry(title="Offdelay", data=self._data)
 
         return self.async_show_form(
             step_id="presence",
             data_schema=self._presence_schema(self._data),
-        )
-
-    # -------------------------------------------------------------
-    # Energy step (shared between setup and reconfigure)
-    # -------------------------------------------------------------
-
-    async def async_step_energy(
-        self,
-        user_input: dict | None = None,
-    ) -> config_entries.ConfigFlowResult:
-        """Handle the Energy step (boost heat pump climates) and finalize setup."""
-        if user_input is not None:
-            self._data.update(user_input)
-            return self.async_create_entry(
-                title="Offdelay",
-                data=self._data,
-            )
-
-        return self.async_show_form(
-            step_id="energy",
-            data_schema=self._energy_schema(self._data),
         )
 
     # -------------------------------------------------------------
@@ -326,7 +284,7 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_SUMMER_NIGHT_MIN_TEMP,
-                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 18.0),
+                    default=defaults.get(CONF_SUMMER_NIGHT_MIN_TEMP, 20.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         mode=selector.NumberSelectorMode.BOX,
@@ -379,48 +337,6 @@ class OffdelayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.EntitySelectorConfig(
                         domain="person",
                         multiple=True,
-                    )
-                ),
-            }
-        )
-
-    def _energy_schema(self, defaults: dict | None) -> vol.Schema:
-        """Return the Energy group schema (boost climates only for now)."""
-        defaults = defaults or {}
-
-        return vol.Schema(
-            {
-                vol.Optional(
-                    CONF_CLIMATES_BOOST,
-                    default=defaults.get(CONF_CLIMATES_BOOST, []),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="climate",
-                        multiple=True,
-                    )
-                ),
-                vol.Required(
-                    CONF_BOOST_SUMMER_TEMP,
-                    default=defaults.get(CONF_BOOST_SUMMER_TEMP, 17.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        min=0,
-                        max=40,
-                        step=0.1,
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
-                    )
-                ),
-                vol.Required(
-                    CONF_BOOST_WINTER_TEMP,
-                    default=defaults.get(CONF_BOOST_WINTER_TEMP, 24.0),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        min=0,
-                        max=40,
-                        step=0.1,
-                        unit_of_measurement=UnitOfTemperature.CELSIUS,
                     )
                 ),
             }

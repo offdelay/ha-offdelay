@@ -9,12 +9,12 @@
                     "summer_day_min_temp": "Summer Mode Day Min Temperature",
                     "winter_day_max_temp": "Winter Mode Day Max Temperature",
                     "climate_night_start_hour": "Climate Night Logic Start Hour",
-                    "summer_night_temp_sensor": "Summer Night Temperature Sensor",
-                    "summer_night_max_temp": "Summer Mode Night Max Temperature",
-                    "summer_night_min_temp": "Summer Mode Night Min Temperature",
-                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
-                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
-                    "winter_night_min_temp": "Winter Mode Night Min Temperature"
+                    "summer_night_temp_sensor": "Summer Night Temperature Sensor (warmest rooms)",
+                    "summer_night_max_temp": "Summer Mode Night Max Temp Turn ON override",
+                    "summer_night_min_temp": "Summer Mode Night Min Temp Turn OFF override",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor (coldest rooms)",
+                    "winter_night_max_temp": "Winter Mode Night Max Temp Turn OFF override",
+                    "winter_night_min_temp": "Winter Mode Night Min Temp Turn ON override"
                 }
             },
             "reconfigure": {
@@ -22,8 +22,7 @@
                 "description": "Choose which configuration group to update.",
                 "menu_options": {
                     "reconfigure_climate": "Climate",
-                    "reconfigure_presence": "Presence",
-                    "reconfigure_energy": "Energy"
+                    "reconfigure_presence": "Presence"
                 }
             },
             "reconfigure_climate": {
@@ -34,12 +33,12 @@
                     "summer_day_min_temp": "Summer Mode Day Min Temperature",
                     "winter_day_max_temp": "Winter Mode Day Max Temperature",
                     "climate_night_start_hour": "Climate Night Logic Start Hour",
-                    "summer_night_temp_sensor": "Summer Night Temperature Sensor",
-                    "summer_night_max_temp": "Summer Mode Night Max Temperature",
-                    "summer_night_min_temp": "Summer Mode Night Min Temperature",
-                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor",
-                    "winter_night_max_temp": "Winter Mode Night Max Temperature",
-                    "winter_night_min_temp": "Winter Mode Night Min Temperature"
+                    "summer_night_temp_sensor": "Summer Night Temperature Sensor (warmest rooms)",
+                    "summer_night_max_temp": "Summer Mode Night Max Temp Turn ON override",
+                    "summer_night_min_temp": "Summer Mode Night Min Temp Turn OFF override",
+                    "winter_night_temp_sensor": "Winter Mode Night Temperature Sensor (coldest rooms)",
+                    "winter_night_max_temp": "Winter Mode Night Max Temp Turn OFF override",
+                    "winter_night_min_temp": "Winter Mode Night Min Temp Turn ON override"
                 }
             },
             "reconfigure_presence": {
@@ -52,15 +51,6 @@
                     "persons": "Persons"
                 }
             },
-            "reconfigure_energy": {
-                "title": "Energy",
-                "description": "Update energy-related entities. Currently manages boost heat pump climates.",
-                "data": {
-                    "climates_boost": "Boost Climates",
-                    "boost_summer_temp": "Boost Summer Temperature",
-                    "boost_winter_temp": "Boost Winter Temperature"
-                }
-            },
             "presence": {
                 "title": "Presence",
                 "description": "Configure occupancy sensors, guest mode delays, and tracked persons.",
@@ -69,15 +59,6 @@
                     "guest_turn_on_delay": "Guest Mode Turn On Delay (minutes)",
                     "guest_turn_off_delay": "Guest Mode Turn Off Delay (minutes)",
                     "persons": "Persons"
-                }
-            },
-            "energy": {
-                "title": "Energy",
-                "description": "Configure energy-related entities. Currently manages boost heat pump climates.",
-                "data": {
-                    "climates_boost": "Boost Climates",
-                    "boost_summer_temp": "Boost Summer Temperature",
-                    "boost_winter_temp": "Boost Winter Temperature"
                 }
             }
         },

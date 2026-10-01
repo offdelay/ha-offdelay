@@ -6,11 +6,8 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.offdelay.const import (
-    CONF_BOOST_SUMMER_TEMP,
-    CONF_BOOST_WINTER_TEMP,
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
-    CONF_CLIMATES_BOOST,
     CONF_GUEST_TURN_OFF_DELAY,
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
@@ -46,15 +43,9 @@ PRESENCE_INPUT = {
     CONF_PERSONS: ["person.john"],
 }
 
-ENERGY_INPUT = {
-    CONF_CLIMATES_BOOST: ["climate.heatpump"],
-    CONF_BOOST_SUMMER_TEMP: 17.0,
-    CONF_BOOST_WINTER_TEMP: 24.0,
-}
 
-
-async def test_setup_happy_path_climate_presence_energy(hass: HomeAssistant) -> None:
-    """Initial setup walks Climate -> Presence -> Energy and creates a flat entry."""
+async def test_setup_happy_path_climate_presence(hass: HomeAssistant) -> None:
+    """Initial setup walks Climate -> Presence and creates a flat entry."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -70,16 +61,10 @@ async def test_setup_happy_path_climate_presence_energy(hass: HomeAssistant) -> 
     result = await hass.config_entries.flow.async_configure(
         result.get("flow_id"), PRESENCE_INPUT
     )
-    assert result.get("type") == data_entry_flow.FlowResultType.FORM
-    assert result.get("step_id") == "energy"
-
-    result = await hass.config_entries.flow.async_configure(
-        result.get("flow_id"), ENERGY_INPUT
-    )
     assert result.get("type") == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result.get("title") == "Offdelay"
 
-    expected = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
+    expected = {**CLIMATE_INPUT, **PRESENCE_INPUT}
     assert result.get("data") == expected
 
 
@@ -117,7 +102,7 @@ async def test_climate_validation_blocks_advance(
 
 async def test_reconfigure_shows_menu(hass: HomeAssistant) -> None:
     """Reconfigure presents a menu to choose the group to edit."""
-    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
+    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT}
     entry = MockConfigEntry(domain=DOMAIN, data=initial, title="Offdelay")
     entry.add_to_hass(hass)
 
@@ -127,18 +112,14 @@ async def test_reconfigure_shows_menu(hass: HomeAssistant) -> None:
 
     menu_options = result.get("menu_options")
     assert isinstance(menu_options, list)
-    assert set(menu_options) == {
-        "reconfigure_climate",
-        "reconfigure_presence",
-        "reconfigure_energy",
-    }
+    assert set(menu_options) == {"reconfigure_climate", "reconfigure_presence"}
 
 
 async def test_reconfigure_climate_only_updates_climate_keys(
     hass: HomeAssistant,
 ) -> None:
     """Picking Climate updates only Climate keys; other keys stay intact."""
-    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
+    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT}
     entry = MockConfigEntry(domain=DOMAIN, data=initial, title="Offdelay")
     entry.add_to_hass(hass)
 
@@ -155,7 +136,7 @@ async def test_reconfigure_climate_only_updates_climate_keys(
     assert result.get("type") == data_entry_flow.FlowResultType.ABORT
     assert result.get("reason") == "reconfigure_successful"
 
-    expected = {**new_climate, **PRESENCE_INPUT, **ENERGY_INPUT}
+    expected = {**new_climate, **PRESENCE_INPUT}
     assert dict(entry.data) == expected
 
 
@@ -163,7 +144,7 @@ async def test_reconfigure_climate_validation_blocks_advance(
     hass: HomeAssistant,
 ) -> None:
     """Invalid Climate edits during reconfigure surface validation errors."""
-    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
+    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT}
     entry = MockConfigEntry(domain=DOMAIN, data=initial, title="Offdelay")
     entry.add_to_hass(hass)
 
@@ -182,7 +163,7 @@ async def test_reconfigure_presence_only_updates_presence_keys(
     hass: HomeAssistant,
 ) -> None:
     """Picking Presence updates only Presence keys; other keys stay intact."""
-    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
+    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT}
     entry = MockConfigEntry(domain=DOMAIN, data=initial, title="Offdelay")
     entry.add_to_hass(hass)
 
@@ -199,34 +180,5 @@ async def test_reconfigure_presence_only_updates_presence_keys(
     assert result.get("type") == data_entry_flow.FlowResultType.ABORT
     assert result.get("reason") == "reconfigure_successful"
 
-    expected = {**CLIMATE_INPUT, **new_presence, **ENERGY_INPUT}
-    assert dict(entry.data) == expected
-
-
-async def test_reconfigure_energy_only_updates_energy_keys(
-    hass: HomeAssistant,
-) -> None:
-    """Picking Energy updates only Energy keys; other keys stay intact."""
-    initial = {**CLIMATE_INPUT, **PRESENCE_INPUT, **ENERGY_INPUT}
-    entry = MockConfigEntry(domain=DOMAIN, data=initial, title="Offdelay")
-    entry.add_to_hass(hass)
-
-    result = await entry.start_reconfigure_flow(hass)
-    result = await hass.config_entries.flow.async_configure(
-        result.get("flow_id"), {"next_step_id": "reconfigure_energy"}
-    )
-    assert result.get("step_id") == "reconfigure_energy"
-
-    new_energy = {
-        CONF_CLIMATES_BOOST: ["climate.new_boost"],
-        CONF_BOOST_SUMMER_TEMP: 17.0,
-        CONF_BOOST_WINTER_TEMP: 24.0,
-    }
-    result = await hass.config_entries.flow.async_configure(
-        result.get("flow_id"), new_energy
-    )
-    assert result.get("type") == data_entry_flow.FlowResultType.ABORT
-    assert result.get("reason") == "reconfigure_successful"
-
-    expected = {**CLIMATE_INPUT, **PRESENCE_INPUT, **new_energy}
+    expected = {**CLIMATE_INPUT, **new_presence}
     assert dict(entry.data) == expected

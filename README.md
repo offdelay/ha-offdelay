@@ -29,7 +29,7 @@ Because this is not part of the default HACS repository, you must add it as a cu
 
 ## Configuration
 
-After installation, the integration can be configured through the Home Assistant UI. The setup wizard guides you through climate thresholds, presence settings, and energy configuration. You can reconfigure these groups at any time through the integration's options.
+After installation, the integration can be configured through the Home Assistant UI. The setup wizard guides you through climate thresholds and presence settings. You can reconfigure these groups at any time through the integration's options.
 
 [![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=offdelay)
 
@@ -56,9 +56,6 @@ This integration creates the following entities:
 
 - **Winter Night Temp Reading** (`sensor.winter_night_temp_reading`): Mirrors the configured winter night temperature sensor.
   - **Unit**: `°C`
-  - **Category**: Diagnostic
-
-- **Boost Climate Mode Sensors** (per configured climate): For each climate entity configured for boost, a diagnostic mode sensor is created that mirrors the matching EVCC mode select entity (for example `sensor.offdelay_kid_big_bedroom_heatpump_mode` mirrors `select.evcc_kid_big_bedroom_heatpump_mode`). If no matching EVCC mode entity exists, the sensor state is `not found`.
   - **Category**: Diagnostic
 
 - **Grid Consumption Power** (`sensor.offdelay_grid_consumption_power`): Tracks imported grid power from `sensor.evcc_grid_power`. Restores its last state after restart and updates automatically when the EVCC source entity becomes available.
@@ -90,15 +87,11 @@ This integration creates the following entities:
 
 - **Climate Mode Winter/Summer** (`binary_sensor.climate_mode_winter_summer`): Indicates if the current climate mode is either winter or summer (i.e., not in transition).
 
-- **Boost Binary Sensors** (per configured climate): For each climate entity configured for boost, a summer and winter boost binary sensor is created (e.g., `binary_sensor.living_room_boost_summer`).
-
 ### Switches
 
 - **Vacation Mode** (`switch.vacation_mode`): Manually control vacation mode. Auto-turns off after arriving home (minimum 4 hours).
 
 - **Guest Mode** (`switch.guest_mode`): Auto-activates when nobody is home but occupancy is detected. Configurable turn-on and turn-off delays. When 2 or more occupancy sensors are ON at the same time, guest mode activates immediately and bypasses the turn-on delay. Auto-logic is only active when at least one occupancy sensor is configured; otherwise the switch behaves as a manual toggle. State is restored across Home Assistant restarts.
-
-- **Boost Switches** (per configured climate): For each climate entity configured for boost, a switch is created to toggle boost mode (e.g., `switch.offdelay_living_room_boost`).
 
 ## Imports
 

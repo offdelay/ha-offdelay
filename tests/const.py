@@ -3,7 +3,6 @@
 from custom_components.offdelay.const import (
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
-    CONF_CLIMATES_BOOST,
     CONF_GUEST_TURN_OFF_DELAY,
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
@@ -60,12 +59,4 @@ MOCK_CONFIG_WITH_PERSONS = {
     CONF_GUEST_TURN_ON_DELAY: 5,
     CONF_GUEST_TURN_OFF_DELAY: 15,
     CONF_PERSONS: ["person.john", "person.jane"],
-}
-
-MOCK_CONFIG_WITH_BOOST_CLIMATES = {
-    **MOCK_CONFIG_WITH_NIGHT_SENSORS,
-    CONF_CLIMATES_BOOST: [
-        "climate.kid_big_bedroom_heatpump",
-        "climate.master_bedroom_heatpump",
-    ],
 }

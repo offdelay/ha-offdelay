@@ -17,7 +17,6 @@ from .const import (
     CLIMATE_MODE_WINTER,
     CONF_CLIMATE_DAY_START_HOUR,
     CONF_CLIMATE_NIGHT_START_HOUR,
-    CONF_CLIMATES_BOOST,
     CONF_SUMMER_DAY_MIN_TEMP,
     CONF_SUMMER_NIGHT_MAX_TEMP,
     CONF_SUMMER_NIGHT_MIN_TEMP,
@@ -30,7 +29,6 @@ from .const import (
     LOGGER,
 )
 from .data import OffdelayConfigEntry
-from .helpers import get_evcc_mode_entity_id
 
 
 class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -47,12 +45,10 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.config_entry = config_entry
 
         self.data: dict[str, Any] = {}
-        self.boost_state: dict[str, bool] = {}  # climate entity_id -> boost active
         self._weather_retry_listeners: list[Callable[[], None]] = []
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch all coordinator data."""
-        previous_mode = self.data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
         data: dict[str, Any] = {}
 
         for key in ("summer_night_temp_reading", "winter_night_temp_reading"):
@@ -61,44 +57,8 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         data.update(await self._fetch_weather_slice())
         data.update(self._compute_climate_mode_slice(data))
-        data["boost_state"] = self.boost_state.copy()
-        self._schedule_evcc_modes_off_if_needed(
-            previous_mode, data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
-        )
 
         return data
-
-    def _schedule_evcc_modes_off_if_needed(
-        self,
-        previous_mode: str,
-        new_mode: str,
-    ) -> None:
-        """Set all tracked EVCC mode entities to off on season-mode shutdown."""
-        if (
-            previous_mode in {CLIMATE_MODE_SUMMER, CLIMATE_MODE_WINTER}
-            and new_mode == CLIMATE_MODE_OFF
-        ):
-            self.hass.async_create_task(self._async_turn_off_evcc_modes())
-
-    async def _async_turn_off_evcc_modes(self) -> None:
-        """Set all discovered EVCC mode entities to off."""
-        for entity_id in self._get_evcc_mode_entity_ids():
-            if self.hass.states.get(entity_id) is None:
-                continue
-
-            await self.hass.services.async_call(
-                "select",
-                "select_option",
-                {"entity_id": entity_id, "option": CLIMATE_MODE_OFF},
-                blocking=True,
-            )
-
-    def _get_evcc_mode_entity_ids(self) -> list[str]:
-        """Return EVCC mode entity IDs for configured boost climates."""
-        boost_climates: list[str] = self.config_entry.data.get(CONF_CLIMATES_BOOST, [])
-        return list(
-            dict.fromkeys(get_evcc_mode_entity_id(cid) for cid in boost_climates)
-        )
 
     def _is_day_window(self) -> bool:
         """Check if current time is in the day (weather) window.
@@ -204,41 +164,25 @@ class OffdelayDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Forward a night-temp source change. Recomputes climate_mode only."""
         if self.data is None:
             self.data = {}
-        previous_mode = self.data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
         data = dict(self.data)
         if value is None:
             data.pop(key, None)
         else:
             data[key] = value
         data.update(self._compute_climate_mode_slice(data))
-        data["boost_state"] = self.boost_state.copy()
-        self._schedule_evcc_modes_off_if_needed(
-            previous_mode, data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
-        )
         self.async_set_updated_data(data)
 
     async def refresh_weather(self) -> None:
         """Explicit weather refresh; recomputes climate_mode."""
-        previous_mode = self.data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
         weather = await self._fetch_weather_slice()
         data = dict(self.data or {})
         data.update(weather)
         data.update(self._compute_climate_mode_slice(data))
-        data["boost_state"] = self.boost_state.copy()
-        self._schedule_evcc_modes_off_if_needed(
-            previous_mode, data.get(DATA_CLIMATE_MODE, CLIMATE_MODE_OFF)
-        )
         self.async_set_updated_data(data)
 
     async def _update_weather_data(self) -> dict[str, Any]:
         """Backwards-compatible weather wrapper."""
         return await self._fetch_weather_slice()
-
-    def set_boost_active(self, climate_entity_id: str, active: bool) -> None:  # noqa: FBT001
-        """Set boost state for a climate entity."""
-        self.boost_state[climate_entity_id] = active
-        self.data["boost_state"] = self.boost_state.copy()
-        self.async_set_updated_data(self.data)
 
     async def _fetch_weather_slice(self) -> dict[str, Any]:
         """Get weather forecast data and compute values from hourly forecasts.

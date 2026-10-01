@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Running unit tests..."
+
+pytest --cov=custom_components/offdelay --cov-report=term-missing
+
+echo "==> Tests completed!"

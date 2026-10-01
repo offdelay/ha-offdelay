@@ -3,7 +3,6 @@
 Includes:
 - Guest Mode switch
 - Vacation Mode switch
-- Boost switches for configured climates
 - Hide Header switch (daily 4 AM reset)
 """
 
@@ -13,11 +12,10 @@ import datetime as dt
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_point_in_time,
@@ -28,19 +26,15 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTRIBUTION,
-    CONF_CLIMATES_BOOST,
     CONF_GUEST_TURN_OFF_DELAY,
     CONF_GUEST_TURN_ON_DELAY,
     CONF_OCCUPANCY_SENSORS,
     DOMAIN,
 )
-from .entity import OffdelayEntity
-from .helpers import get_climate_friendly_name, get_entity_object_id
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import OffdelayDataUpdateCoordinator
     from .data import OffdelayConfigEntry
 
 ZONE_HOME_ENTITY = "zone.home"
@@ -69,26 +63,6 @@ async def async_setup_entry(
             HideHeaderSwitch(entry),
         ]
     )
-
-    # Boost switches (per climate)
-    boost_climates = entry.data.get(CONF_CLIMATES_BOOST, [])
-    coordinator = entry.runtime_data.coordinator
-
-    for climate_id in boost_climates:
-        friendly_name = get_climate_friendly_name(hass, climate_id)
-        description = SwitchEntityDescription(
-            key=f"boost_{climate_id.split('.')[-1]}",
-            name=f"{friendly_name} Boost",
-            icon="mdi:heat-wave",
-            entity_category=EntityCategory.DIAGNOSTIC,
-        )
-        entities.append(
-            OffdelayBoostSwitch(
-                coordinator=coordinator,
-                entity_description=description,
-                climate_entity_id=climate_id,
-            )
-        )
 
     async_add_entities(entities)
 
@@ -413,41 +387,6 @@ class VacationModeSwitch(SwitchEntity):
         if self._timer:
             self._timer()
             self._timer = None
-
-
-# ------------------------------------------------------------------
-# Boost Switch
-# ------------------------------------------------------------------
-
-
-class OffdelayBoostSwitch(OffdelayEntity, SwitchEntity):
-    """Switch to control heatpump boost mode."""
-
-    def __init__(
-        self,
-        coordinator: OffdelayDataUpdateCoordinator,
-        entity_description: SwitchEntityDescription,
-        climate_entity_id: str,
-    ) -> None:
-        """Initialize boost switch for a climate entity."""
-        super().__init__(coordinator, entity_description)
-        self._climate_entity_id = climate_entity_id
-        climate_object_id = get_entity_object_id(climate_entity_id)
-        self.entity_id = f"switch.offdelay_{climate_object_id}_boost"
-
-    @property
-    def is_on(self) -> bool:
-        """Return True when boost is active for this climate."""
-        boost_state = self.coordinator.data.get("boost_state", {})
-        return boost_state.get(self._climate_entity_id, False)
-
-    async def async_turn_on(self, **_: object) -> None:
-        """Activate boost mode for this climate entity."""
-        self.coordinator.set_boost_active(self._climate_entity_id, active=True)
-
-    async def async_turn_off(self, **_: object) -> None:
-        """Deactivate boost mode for this climate entity."""
-        self.coordinator.set_boost_active(self._climate_entity_id, active=False)
 
 
 # ------------------------------------------------------------------

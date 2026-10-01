@@ -5,7 +5,7 @@
 # defined in requirements.txt, avoiding separate pre-commit environments.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
+    rev: v0.16.9
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
