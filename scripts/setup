@@ -6,7 +6,7 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-scripts/bootstrap
+sh scripts/bootstrap
 
 echo "==> Priming all integration dependencies (The Run-Once)..."
 # This looks at your configuration.yaml and installs everything it finds.
