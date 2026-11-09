@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from homeassistant.components.zone import DATA_ZONE_STORAGE_COLLECTION
+from homeassistant.components import zone
+from homeassistant.components.zone import const as zone_const
 from homeassistant.const import (
     CONF_ICON,
     CONF_LATITUDE,
@@ -169,19 +170,27 @@ async def _ensure_zone_home(hass: HomeAssistant) -> None:
 
     latitude, longitude = _resolve_home_coords(hass)
 
-    storage_collection = hass.data.get(DATA_ZONE_STORAGE_COLLECTION)
+    storage_collection_key = getattr(zone, "DATA_ZONE_STORAGE_COLLECTION", None)
+    if storage_collection_key is not None:
+        storage_collection = hass.data.get(storage_collection_key)
+    else:
+        zone_data = hass.data.get(zone_const.DATA_ZONE)
+        storage_collection = (
+            zone_data.storage_collection if zone_data is not None else None
+        )
+
     if storage_collection is None:
         LOGGER.warning("Zone component not yet loaded; skipping zone.home auto-create.")
         return
 
-    zone_data = {
+    zone_config = {
         CONF_NAME: HOME_NAME,
         CONF_LATITUDE: latitude,
         CONF_LONGITUDE: longitude,
         CONF_RADIUS: 50,
         CONF_ICON: "mdi:home",
     }
-    await storage_collection.async_create_item(zone_data)
+    await storage_collection.async_create_item(zone_config)
 
 
 async def _ensure_proximity_entry(

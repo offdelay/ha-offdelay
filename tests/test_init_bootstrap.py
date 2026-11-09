@@ -12,9 +12,11 @@ exported from ``const``.
 from __future__ import annotations
 
 from importlib import import_module
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-from homeassistant.components.zone import DATA_ZONE_STORAGE_COLLECTION
+from homeassistant.components import zone
+from homeassistant.components.zone import const as zone_const
 from homeassistant.core import HomeAssistant
 import pytest
 
@@ -24,6 +26,26 @@ from custom_components.offdelay import (
     _ensure_zone_home,
 )
 from custom_components.offdelay.const import HOME_NAME, HOME_ZONE, PROXIMITY_TOLERANCE
+
+
+def _set_zone_storage_collection(hass: HomeAssistant, storage_collection) -> None:
+    """Register a mock collection using the current Home Assistant zone API."""
+    storage_collection_key = getattr(zone, "DATA_ZONE_STORAGE_COLLECTION", None)
+    if storage_collection_key is not None:
+        hass.data[storage_collection_key] = storage_collection
+    else:
+        hass.data[zone_const.DATA_ZONE] = SimpleNamespace(
+            storage_collection=storage_collection
+        )
+
+
+def _zone_data_key():
+    """Return the hass.data key used by the Home Assistant zone component."""
+    storage_collection_key = getattr(zone, "DATA_ZONE_STORAGE_COLLECTION", None)
+    if storage_collection_key is not None:
+        return storage_collection_key
+    return zone_const.DATA_ZONE
+
 
 # ---------------------------------------------------------------------------
 # Constant rename regression
@@ -50,7 +72,7 @@ async def test_ensure_zone_home_skips_when_state_exists(hass: HomeAssistant) -> 
     """When ``zone.home`` already exists, no storage create call is made."""
     storage_collection = MagicMock()
     storage_collection.async_create_item = AsyncMock()
-    hass.data[DATA_ZONE_STORAGE_COLLECTION] = storage_collection
+    _set_zone_storage_collection(hass, storage_collection)
 
     # The autouse fixture in conftest already sets zone.home.
     assert hass.states.get("zone.home") is not None
@@ -70,7 +92,7 @@ async def test_ensure_zone_home_creates_when_missing_using_ha_coords(
 
     storage_collection = MagicMock()
     storage_collection.async_create_item = AsyncMock()
-    hass.data[DATA_ZONE_STORAGE_COLLECTION] = storage_collection
+    _set_zone_storage_collection(hass, storage_collection)
 
     await _ensure_zone_home(hass)
 
@@ -85,6 +107,36 @@ async def test_ensure_zone_home_creates_when_missing_using_ha_coords(
     }
 
 
+async def test_ensure_zone_home_uses_zone_runtime_data(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The newer zone API stores the collection on zone runtime data."""
+    hass.states.async_remove("zone.home")
+    hass.config.latitude = 52.0
+    hass.config.longitude = 4.0
+    monkeypatch.delattr(zone, "DATA_ZONE_STORAGE_COLLECTION", raising=False)
+    monkeypatch.setattr(zone_const, "DATA_ZONE", "zone_runtime_data", raising=False)
+
+    storage_collection = MagicMock()
+    storage_collection.async_create_item = AsyncMock()
+    hass.data["zone_runtime_data"] = SimpleNamespace(
+        storage_collection=storage_collection
+    )
+
+    await _ensure_zone_home(hass)
+
+    storage_collection.async_create_item.assert_awaited_once_with(
+        {
+            "name": "home",
+            "latitude": 52.0,
+            "longitude": 4.0,
+            "radius": 50,
+            "icon": "mdi:home",
+        }
+    )
+
+
 async def test_ensure_zone_home_falls_back_to_ghent(hass: HomeAssistant) -> None:
     """When HA's coords are (0.0, 0.0), helper falls back to Ghent."""
     hass.states.async_remove("zone.home")
@@ -93,7 +145,7 @@ async def test_ensure_zone_home_falls_back_to_ghent(hass: HomeAssistant) -> None
 
     storage_collection = MagicMock()
     storage_collection.async_create_item = AsyncMock()
-    hass.data[DATA_ZONE_STORAGE_COLLECTION] = storage_collection
+    _set_zone_storage_collection(hass, storage_collection)
 
     await _ensure_zone_home(hass)
 
@@ -112,7 +164,7 @@ async def test_ensure_zone_home_skips_when_storage_not_loaded(
 ) -> None:
     """When the zone storage collection isn't registered, helper logs and returns."""
     hass.states.async_remove("zone.home")
-    hass.data.pop(DATA_ZONE_STORAGE_COLLECTION, None)
+    hass.data.pop(_zone_data_key(), None)
 
     with caplog.at_level("WARNING"):
         await _ensure_zone_home(hass)

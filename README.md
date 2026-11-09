@@ -21,7 +21,7 @@ Because this is not part of the default HACS repository, you must add it as a cu
 
 1.  Go to HACS &rarr; Integrations &rarr; Click the three dots in the top right.
 2.  Select "Custom repositories".
-3.  Add the URL to this repository (`https://github.com/offdelay/offdelay-integration`) in the "Repository" field.
+3.  Add the URL to this repository (`https://github.com/offdelay/ha-offdelay`) in the "Repository" field.
 4.  Select "Integration" as the category.
 5.  Click "ADD".
 6.  The "Offdelay" will now show up. Click "INSTALL".
